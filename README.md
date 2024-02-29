@@ -1,38 +1,47 @@
-# create-svelte
+# Family Bookkeeping
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+This is a family bookkeeping application built with Svelte and Firebase.
 
-## Creating a project
+## Installation 
 
-If you're seeing this, you've probably already done this step. Congrats!
+Clone the repository and install dependencies with npm:
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+```bash 
+  git clone https://github.com/yourusername/family-bookkeeping.git
+  cd family-bookkeeping
+  npm install
 ```
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Start a development server:
 
 ```bash
 npm run dev
-
 # or start the server and open the app in a new browser tab
 npm run dev -- --open
 ```
 
 ## Building
-
 To create a production version of your app:
-
 ```bash
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+You can preview the production build with npm run preview.
 
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+## Firebase Configuration
+This project uses Firebase for authentication and data storage. You need to set up your Firebase project and add the configuration to a .env file in the project root:
+
+```
+VITE_APIKEY=yourapikey
+VITE_AUTH_DOMAIN=yourauthdomain
+VITE_PROJECT_ID=yourprojectid
+VITE_STORAGE_BUCKET=yourstoragebucket
+VITE_MESSAGING_SENDER_ID=yourmessagingsenderid
+VITE_APP_ID=yourappid
+```
+Replace yourapikey, yourauthdomain, etc. with your actual Firebase configuration values.
+
+## License
+MIT
