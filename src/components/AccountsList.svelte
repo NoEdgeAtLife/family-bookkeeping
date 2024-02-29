@@ -2,6 +2,8 @@
     export let accounts;
     export let editAccount;
     export let deleteAccount;
+    let newAmount;
+    let showModal = false;
 </script>
 
 <div class="table">
@@ -15,8 +17,14 @@
             <div class="table-cell">{account[0]}</div>
             <div class="table-cell">{account[1]}</div>
             <div class="table-cell">
-                <button on:click={() => editAccount(account[0], account[1])}>Edit</button>
-                <button on:click={() => deleteAccount(account[0])}>Delete</button>
+                {#if showModal}
+                    <input type="number" bind:value={newAmount} placeholder="input amount" />
+                    <button on:click={() => editAccount(account[0], newAmount)}>confirm</button>
+                    <button on:click={() => deleteAccount(account[0])}>Delete</button>
+                    <button on:click={() => showModal = false}>Cancel</button>
+                {:else}
+                    <button on:click={() => showModal = true}>Edit</button>
+                {/if}
             </div>
         </div>
     {/each}

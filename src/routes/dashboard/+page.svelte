@@ -3,12 +3,12 @@
     import { authHandlers, authStore } from "../../store/store";
     import { getDoc, doc, setDoc } from "firebase/firestore";
     import AccountsList from "../../components/AccountsList.svelte";
+    import TransactionsList from "../../components/TransactionsList.svelte";
 
     let accounts = [1];
     let accountName = "";
     let amount = "";
     let txs = [];
-
     authStore.subscribe((curr) => {
       if (curr.user) {
         accounts = Object.entries(curr.data.accounts);
@@ -16,10 +16,15 @@
       }
     });
 
-    let editAccount = (accountName, amount) => {
-        accountName = accountName;
-        amount = amount;
+    let editAccount = async (accountName, amount) => {
+      const docRef = doc(db, "users", $authStore.user.uid);
+      const docSnap = await getDoc(docRef);
+      let data = docSnap.data();
+      data.accounts[accountName] = amount;
+      await setDoc(docRef, data);
+      accounts = Object.entries(data.accounts);
     };
+
     let deleteAccount = async (accountName) => {
         const docRef = doc(db, "users", $authStore.user.uid);
         const docSnap = await getDoc(docRef);
@@ -40,7 +45,8 @@
     let fromAccount = "";
     let toAccount = "";
     let txAmount = "";
-    let txDate = "";
+    let txDate = new Date().toISOString().split('T')[0];
+    let txDescription = "";
 
     let addTransaction = async () => {
         const docRef = doc(db, "users", $authStore.user.uid);
@@ -50,7 +56,8 @@
             from: fromAccount,
             to: toAccount,
             amount: txAmount,
-            date: txDate
+            date: txDate,
+            description: txDescription
         });
         await setDoc(docRef, data);
         txs = Object.entries(data.txs);
@@ -66,10 +73,11 @@
         const docRef = doc(db, "users", $authStore.user.uid);
         const docSnap = await getDoc(docRef);
         let data = docSnap.data();
+        txAmount = data.txs[index].amount;
         data.txs.splice(index, 1);
         await setDoc(docRef, data);
         txs = Object.entries(data.txs);
-
+        
         // Update the corresponding accounts
         data.accounts[fromAccount] += txAmount;
         data.accounts[toAccount] -= txAmount;
@@ -89,13 +97,13 @@
     <input type="number" bind:value={amount} placeholder="Amount" />
     <button on:click={addAccount}>Add Account</button>
   </div>
+
   <main>
     {#if accounts.length > 0}
       <AccountsList {accounts} {editAccount} {deleteAccount} />
     {:else}
       <p>No accounts found</p>
     {/if}
-  </main>
   <div class="transactionContainer">
     <h2>Transactions</h2>
     <div class="transactionForm">
@@ -110,27 +118,19 @@
         {/each}
       </select>
       <input type="number" bind:value={txAmount} placeholder="Amount" />
-      <input type="date" bind:value={txDate} placeholder="Date" />
+      <input type="date" bind:value={txDate} placeholder={txDate} />
+      <input type="text" bind:value={txDescription} placeholder="Description" />
       <button on:click={addTransaction}>Add Transaction</button>
     </div>
     <div class="transactionList">
       {#if txs.length > 0}
-        <ul>
-          {#each txs as [index, tx]}
-            <li key={index}>
-              <p>From: {tx.from}</p>
-              <p>To: {tx.to}</p>
-              <p>Amount: {tx.amount}</p>
-              <p>Date: {tx.date}</p>
-              <button on:click={() => deleteTransaction(index)}>Delete</button>
-            </li>
-          {/each}
-        </ul>
+      <TransactionsList {txs} {deleteTransaction} />
       {:else}
         <p>No transactions found</p>
       {/if}
     </div>
   </div>
+  </main>
 </div>
 {/if}
 
@@ -172,18 +172,6 @@
   .transactionForm {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
-  }
-  .transactionList {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  ul {
-    list-style-type: none;
-    padding: 0;
-  }
-  li {
     margin-bottom: 10px;
   }
 </style>
