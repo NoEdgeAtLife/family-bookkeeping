@@ -62,8 +62,8 @@
 <style>
     .mainContainer {
         min-height: 100vh;
-        background: linear-gradient(to right, #4a47a3, #2b5876);
-        color: #ffffff;
+        background: linear-gradient(to right, #BBCDD3, #9fbec9);
+        color: #333;
         position: relative;
         display: flex;
         flex-direction: column;
