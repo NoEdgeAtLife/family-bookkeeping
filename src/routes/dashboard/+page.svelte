@@ -5,7 +5,7 @@
     import AccountsList from "../../components/AccountsList.svelte";
     import TransactionsList from "../../components/TransactionsList.svelte";
 
-    let accounts = [1];
+    let accounts = [];
     let accountName = "";
     let amount = "";
     let txs = [];
@@ -20,7 +20,10 @@
       const docRef = doc(db, "users", $authStore.user.uid);
       const docSnap = await getDoc(docRef);
       let data = docSnap.data();
-      data.accounts[accountName] = amount;
+      data.accounts = {
+        ...data.accounts,
+        [accountName]: amount,
+      };
       await setDoc(docRef, data);
       accounts = Object.entries(data.accounts);
     };
@@ -37,7 +40,10 @@
         const docRef = doc(db, "users", $authStore.user.uid);
         const docSnap = await getDoc(docRef);
         let data = docSnap.data();
-        data.accounts[accountName] = amount;
+        data.accounts = {
+        ...data.accounts,
+        [accountName]: amount,
+        };
         await setDoc(docRef, data);
         accounts = Object.entries(data.accounts);
     };
