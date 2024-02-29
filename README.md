@@ -7,7 +7,7 @@ This is a family bookkeeping application built with Svelte and Firebase.
 Clone the repository and install dependencies with npm:
 
 ```bash 
-  git clone https://github.com/yourusername/family-bookkeeping.git
+  git clone https://github.com/NoEdgeAtLife/family-bookkeeping.git
   cd family-bookkeeping
   npm install
 ```
