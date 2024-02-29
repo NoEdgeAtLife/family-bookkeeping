@@ -1,5 +1,6 @@
 <script>
     import { authHandlers } from "../store/store";
+    const envPassword = import.meta.env.VITE_PASSWORD;
 
     let email = "";
     let password = "";
@@ -32,6 +33,11 @@
     }
 
     function handleRegister() {
+        let input_password = prompt("Enter Password");
+            if (input_password !== envPassword) {
+                console.log("Incorrect Password");
+                return;
+            }
         register = !register;
     }
 </script>
