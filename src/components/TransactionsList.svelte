@@ -1,6 +1,7 @@
 <script>
   export let txs;
   export let deleteTransaction;
+  export let editTransaction;
   let showModal = false;
   let newAmount;
   let itemsPerPage = 10;
@@ -33,7 +34,8 @@
         <div class="table-cell">
           {#if showModal}
             <input type="number" bind:value={newAmount} placeholder="input amount" />
-            <button on:click={() => deleteTransaction(index)}>Delete</button>
+            <button on:click={() => editTransaction(index, tx.amount-newAmount)}>Save</button>
+            <button on:click={() => deleteTransaction(index, tx)}>Delete</button>
             <button on:click={() => showModal = false}>Cancel</button>
           {:else}
             <button on:click={() => showModal = true}>Edit</button>

@@ -75,18 +75,32 @@
         accounts = Object.entries(data.accounts);
     };
 
-    let deleteTransaction = async (index) => {
+    let editTransaction = async (index, diff) => {
         const docRef = doc(db, "users", $authStore.user.uid);
         const docSnap = await getDoc(docRef);
         let data = docSnap.data();
-        txAmount = data.txs[index].amount;
-        data.txs.splice(index, 1);
+        data.txs[index].amount -= diff;
+        data.accounts[data.txs[index].from] += diff;
+        data.accounts[data.txs[index].to] -= diff;
         await setDoc(docRef, data);
         txs = Object.entries(data.txs);
-        
+        accounts = Object.entries(data.accounts);
+    };
+
+    let deleteTransaction = async (index, tx) => {
+        const docRef = doc(db, "users", $authStore.user.uid);
+        const docSnap = await getDoc(docRef);
+        let data = docSnap.data();
+        txAmount = tx.amount;
+        fromAccount = tx.from;
+        toAccount = tx.to;
+        data.txs.splice(index, 1);
+        txs = Object.entries(data.txs);
+
         // Update the corresponding accounts
         data.accounts[fromAccount] += txAmount;
         data.accounts[toAccount] -= txAmount;
+
         await setDoc(docRef, data);
         accounts = Object.entries(data.accounts);
     };
@@ -130,7 +144,7 @@
     </div>
     <div class="transactionList">
       {#if txs.length > 0}
-      <TransactionsList {txs} {deleteTransaction} />
+      <TransactionsList {txs} {editTransaction} {deleteTransaction} />
       {:else}
         <p>No transactions found</p>
       {/if}
