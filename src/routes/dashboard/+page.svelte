@@ -4,6 +4,7 @@
     import { getDoc, doc, setDoc } from "firebase/firestore";
     import AccountsList from "../../components/AccountsList.svelte";
     import TransactionsList from "../../components/TransactionsList.svelte";
+    import Calculator from "../../components/Calculator.svelte";
 
     let accounts = [];
     let accountName = "";
@@ -108,6 +109,7 @@
 
 {#if !$authStore.loading}
 <div class="mainContainer">
+    <Calculator {accounts} />
   <div class="headerContainer">
     <h1>Accounts</h1>
     <button on:click={() => authHandlers.logout()}>Sign Out</button>
