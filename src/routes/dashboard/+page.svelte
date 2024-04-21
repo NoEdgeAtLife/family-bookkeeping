@@ -14,6 +14,7 @@
       if (curr.user) {
         accounts = Object.entries(curr.data.accounts);
         txs = Object.entries(curr.data.txs);
+        txs.sort((a, b) => new Date(b[1].date) - new Date(a[1].date)).reverse();
       }
     });
 
@@ -68,7 +69,7 @@
         });
         await setDoc(docRef, data);
         txs = Object.entries(data.txs);
-
+        txs.sort((a, b) => new Date(b[1].date) - new Date(a[1].date)).reverse();
         // Update the corresponding accounts
         data.accounts[fromAccount] -= txAmount;
         data.accounts[toAccount] += txAmount;
@@ -85,6 +86,7 @@
         data.accounts[data.txs[index].to] -= diff;
         await setDoc(docRef, data);
         txs = Object.entries(data.txs);
+        txs.sort((a, b) => new Date(b[1].date) - new Date(a[1].date)).reverse();
         accounts = Object.entries(data.accounts);
     };
 
@@ -97,6 +99,7 @@
         toAccount = tx.to;
         data.txs.splice(index, 1);
         txs = Object.entries(data.txs);
+        txs.sort((a, b) => new Date(b[1].date) - new Date(a[1].date)).reverse();
 
         // Update the corresponding accounts
         data.accounts[fromAccount] += txAmount;
