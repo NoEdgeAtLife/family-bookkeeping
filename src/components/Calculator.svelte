@@ -11,7 +11,7 @@
         const account1 = accounts[selectedAccount1];
         const account2 = accounts[selectedAccount2];
         const totalAmount = account1[1] + account2[1];
-        transactionAmount = (totalAmount * percentage) / 100 - account1[1]; // access the amount using the index
+        transactionAmount = ((totalAmount * percentage) / 100 - account1[1] )/ 2; // access the amount using the index
         accountName1 = account1[0];
         accountName2 = account2[0];
     }
