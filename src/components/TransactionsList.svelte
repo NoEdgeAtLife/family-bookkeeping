@@ -12,9 +12,18 @@
   $: previousPage = () => currentPage > 1 && currentPage--;
   $: goToPage = (page) => currentPage = page;
   $: paginatedTxs = txs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  
+  let exportTx = () => {
+    const data = JSON.stringify(txs);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "transactions.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   </script>
-
+  <div><button on:click={exportTx}>export</button></div>
   <div class="table">
     <div class="table-header">
       <div class="table-cell">Date</div>
