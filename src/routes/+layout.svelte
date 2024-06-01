@@ -71,4 +71,10 @@
         align-items: center;
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     }
+
+    @media (max-width: 768px) {
+        .mainContainer {
+            padding: 20px;
+        }
+    }
 </style>

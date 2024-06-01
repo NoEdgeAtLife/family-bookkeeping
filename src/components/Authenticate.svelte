@@ -259,4 +259,10 @@
             transform: rotate(360deg);
         }
     }
+
+    @media (min-width: 600px) {
+        form {
+            width: 50%;
+        }
+    }
 </style>

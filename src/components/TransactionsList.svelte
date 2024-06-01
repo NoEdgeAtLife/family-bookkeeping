@@ -57,7 +57,15 @@
   <div class="pagination">
     <button on:click={previousPage} disabled={currentPage === 1}>Previous</button>
     {#each Array.from({ length: Math.ceil(txs.length / itemsPerPage) }) as _, i}
+      {#if i === 0 || (i >= currentPage - 1 && i <= currentPage + 1) || i === maxPage - 1}
       <button on:click={() => goToPage(i + 1)} class:selected={currentPage === i + 1}>{i + 1}</button>
+      {/if}
+      {#if i === currentPage + 2 && i !== maxPage - 1}
+      <span>...</span>
+      {/if}
+      {#if i === 0 && currentPage > 3}
+      <span>...</span>
+      {/if}
     {/each}
     <button on:click={nextPage} disabled={currentPage === Math.ceil(txs.length / itemsPerPage)}>Next</button>
   </div>
@@ -81,24 +89,24 @@
     }
 
     .table {
-      display: table;
-      width: 100%;
-      border-collapse: collapse;
+        display: table;
+        width: 100%;
+        border-collapse: collapse;
     }
 
     .table-header {
-      display: table-row;
-      font-weight: bold;
+        display: table-row;
+        font-weight: bold;
     }
 
     .table-cell {
-      display: table-cell;
-      padding: 10px;
-      border: 1px solid #000;
+        display: table-cell;
+        padding: 10px;
+        border: 1px solid #000;
     }
 
     .table-row {
-      display: table-row;
+        display: table-row;
     }
 
     .pagination {
@@ -114,5 +122,35 @@
     .pagination button:selected {
       font-weight: bold;
     }
+
+    @media (max-width: 600px) {
+      .table-cell {
+        display: block;
+        padding: 10px;
+        border: 1px solid #000;
+      }
+      .table-row {
+        display: flex;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .table-cell {
+        display: block;
+        padding: 10px;
+        border: 1px solid #000;
+      }
+      .table-row {
+        display: flex;
+        margin-bottom: 10px;
+        font: 10px;
+      }
+      .pagination {
+        flex-direction: column;
+        align-items: center;
+      }
+      .pagination button {
+        margin: 5px 0;
+      }
+    }
   </style>
-  

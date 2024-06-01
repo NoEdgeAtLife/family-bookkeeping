@@ -51,4 +51,5 @@
     .table-row {
         display: table-row;
     }
+    
 </style>

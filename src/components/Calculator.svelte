@@ -58,6 +58,13 @@
         flex-direction: column;
         align-items: center;
     }
+
+    @media (min-width: 600px) {
+        .form-container {
+            width: 50%;
+            margin: 0 auto;
+        }
+    }
 </style>
 
 <div>

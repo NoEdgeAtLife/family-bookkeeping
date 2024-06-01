@@ -199,4 +199,22 @@
     align-items: center;
     margin-bottom: 10px;
   }
+
+  @media (max-width: 600px) {
+    .formContainer {
+      width: 100%;
+    }
+    main {
+      width: 100%;
+    }
+    .mainContainer {
+      width: 100%;
+    }
+    .transactionContainer {
+      width: 100%;
+    }
+    .transactionForm {
+      flex-direction: column;
+    }
+  }
 </style>
