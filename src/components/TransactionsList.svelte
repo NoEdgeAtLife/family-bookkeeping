@@ -132,6 +132,9 @@
       .table-row {
         display: flex;
       }
+      .table-header {
+        display: flex;
+      }
     }
 
     @media (max-width: 600px) {
@@ -144,6 +147,9 @@
         display: flex;
         margin-bottom: 10px;
         font: 10px;
+      }
+      .table-header {
+        display: flex;
       }
       .pagination {
         flex-direction: column;
