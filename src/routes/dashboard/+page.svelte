@@ -57,24 +57,30 @@
     let txDescription = "";
 
     let addTransaction = async () => {
-        const docRef = doc(db, "users", $authStore.user.uid);
-        const docSnap = await getDoc(docRef);
-        let data = docSnap.data();
-        data.txs.push({
-            from: fromAccount,
-            to: toAccount,
-            amount: txAmount,
-            date: txDate,
-            description: txDescription
-        });
-        await setDoc(docRef, data);
-        txs = Object.entries(data.txs);
-        txs.sort((a, b) => new Date(b[1].date) - new Date(a[1].date)).reverse();
-        // Update the corresponding accounts
-        data.accounts[fromAccount] -= txAmount;
-        data.accounts[toAccount] += txAmount;
-        await setDoc(docRef, data);
-        accounts = Object.entries(data.accounts);
+      // Check if amounts are valid
+      if (isNaN(txAmount) || isNaN(parseFloat(txAmount))) {
+        console.log("Invalid amount");
+        return;
+      }
+
+      const docRef = doc(db, "users", $authStore.user.uid);
+      const docSnap = await getDoc(docRef);
+      let data = docSnap.data();
+      data.txs.push({
+        from: fromAccount,
+        to: toAccount,
+        amount: txAmount,
+        date: txDate,
+        description: txDescription
+      });
+      await setDoc(docRef, data);
+      txs = Object.entries(data.txs);
+      txs.sort((a, b) => new Date(b[1].date) - new Date(a[1].date)).reverse();
+      // Update the corresponding accounts
+      data.accounts[fromAccount] -= txAmount;
+      data.accounts[toAccount] += txAmount;
+      await setDoc(docRef, data);
+      accounts = Object.entries(data.accounts);
     };
 
     let editTransaction = async (index, diff) => {
