@@ -5,13 +5,26 @@
   let showModal = false;
   let newAmount;
   let itemsPerPage = 10;
-  $: txs = txs.slice().reverse();
-  $: currentPage = 1;
-  $: maxPage = Math.ceil(txs.length / itemsPerPage);
+  let searchQuery = "";
+  $: reversedTxs = (txs || []).slice().reverse();
+  $: filteredTxs = searchQuery.trim() 
+    ? reversedTxs.filter(tx => String(tx[1].description || tx.descriptions || "").toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : reversedTxs;
+  $: console.log("Debug: searchQuery =", searchQuery, ", filteredTxs count =", filteredTxs.length);
+  $: console.log("Debug: searchQuery:", searchQuery, "filteredTxs:", filteredTxs);
+  function debugFilter() {
+      console.log("Debug Filter:");
+      console.log("searchQuery:", searchQuery);
+      console.log("reversedTxs count:", reversedTxs.length);
+      console.log("filteredTxs count:", filteredTxs.length);
+  }
+  let currentPage = 1;
+  $: maxPage = Math.ceil(filteredTxs.length / itemsPerPage);
+  $: if (currentPage > maxPage) currentPage = 1;
   $: nextPage = () => currentPage < maxPage && currentPage++;
   $: previousPage = () => currentPage > 1 && currentPage--;
   $: goToPage = (page) => currentPage = page;
-  $: paginatedTxs = txs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  $: paginatedTxs = filteredTxs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   let exportTx = () => {
     const data = JSON.stringify(txs);
     const blob = new Blob([data], { type: "application/json" });
@@ -23,7 +36,10 @@
     URL.revokeObjectURL(url);
   };
   </script>
-  <div><button on:click={exportTx}>export</button></div>
+  <div>
+    <button on:click={exportTx}>export</button>
+    <input type="text" placeholder="Search transactions by description" bind:value={searchQuery} on:input={() => currentPage = 1} />
+  </div>
   <div class="table">
     <div class="table-header">
       <div class="table-cell">Date</div>
@@ -56,7 +72,7 @@
 
   <div class="pagination">
     <button on:click={previousPage} disabled={currentPage === 1}>Previous</button>
-    {#each Array.from({ length: Math.ceil(txs.length / itemsPerPage) }) as _, i}
+    {#each Array.from({ length: Math.ceil(filteredTxs.length / itemsPerPage) }) as _, i}
       {#if i === 0 || (i >= currentPage - 1 && i <= currentPage + 1) || i === maxPage - 1}
       <button on:click={() => goToPage(i + 1)} class:selected={currentPage === i + 1}>{i + 1}</button>
       {/if}
@@ -67,7 +83,7 @@
       <span>...</span>
       {/if}
     {/each}
-    <button on:click={nextPage} disabled={currentPage === Math.ceil(txs.length / itemsPerPage)}>Next</button>
+    <button on:click={nextPage} disabled={currentPage === Math.ceil(filteredTxs.length / itemsPerPage)}>Next</button>
   </div>
 
   <style>
