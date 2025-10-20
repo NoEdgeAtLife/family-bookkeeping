@@ -4,6 +4,8 @@ This is a family bookkeeping application built with Svelte and Firebase.
 
 ## Installation 
 
+This project requires Node.js version 22 or later.
+
 Clone the repository and install dependencies with npm:
 
 ```bash 

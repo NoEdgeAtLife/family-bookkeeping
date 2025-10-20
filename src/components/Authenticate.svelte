@@ -86,12 +86,12 @@
         {#if register}
             <div>
                 <p>Already have an account?</p>
-                <p on:click={handleRegister} on:keydown={() => {}}>Login</p>
+                <button on:click={handleRegister}>Login</button>
             </div>
         {:else}
             <div>
                 <p>Don't have an account?</p>
-                <p on:click={handleRegister} on:keydown={() => {}}>Register</p>
+                <button on:click={handleRegister}>Register</button>
             </div>
         {/if}
     </div>
