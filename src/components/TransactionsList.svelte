@@ -1,21 +1,26 @@
 <script>
   export let txs;
+  export let accounts = [];
   export let deleteTransaction;
   export let editTransaction;
-  let showModal = false;
-  let newAmount;
+  let editingTxIndex = null;
+  let editAmount;
+  let editDate;
+  let editDescription;
+  let editFrom;
+  let editTo;
   let itemsPerPage = 10;
   let searchQuery = "";
-  $: reversedTxs = (txs || []).slice().reverse();
+  $: orderedTxs = (txs || []).slice();
   $: filteredTxs = searchQuery.trim() 
-    ? reversedTxs.filter(tx => String(tx[1].description || tx.descriptions || "").toLowerCase().includes(searchQuery.trim().toLowerCase()))
-    : reversedTxs;
+    ? orderedTxs.filter(tx => String(tx[1].description || tx.descriptions || "").toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : orderedTxs;
   $: console.log("Debug: searchQuery =", searchQuery, ", filteredTxs count =", filteredTxs.length);
   $: console.log("Debug: searchQuery:", searchQuery, "filteredTxs:", filteredTxs);
   function debugFilter() {
       console.log("Debug Filter:");
       console.log("searchQuery:", searchQuery);
-      console.log("reversedTxs count:", reversedTxs.length);
+    console.log("orderedTxs count:", orderedTxs.length);
       console.log("filteredTxs count:", filteredTxs.length);
   }
   let currentPage = 1;
@@ -34,6 +39,22 @@
     a.download = "transactions.json";
     a.click();
     URL.revokeObjectURL(url);
+  };
+  const startEdit = (index, tx) => {
+    editingTxIndex = index;
+    editAmount = tx.amount;
+    editDate = tx.date;
+    editDescription = tx.description;
+    editFrom = tx.from;
+    editTo = tx.to;
+  };
+  const cancelEdit = () => {
+    editingTxIndex = null;
+    editAmount = "";
+    editDate = "";
+    editDescription = "";
+    editFrom = "";
+    editTo = "";
   };
   </script>
   <div>
@@ -57,13 +78,29 @@
         <div class="table-cell">{tx.amount}</div>
         <div class="table-cell">{tx.description}</div>
         <div class="table-cell">
-          {#if showModal}
-            <input type="number" bind:value={newAmount} placeholder="input amount" />
-            <button on:click={() => editTransaction(index, tx.amount-newAmount)}>Save</button>
-            <button on:click={() => deleteTransaction(index, tx)}>Delete</button>
-            <button on:click={() => showModal = false}>Cancel</button>
+          {#if editingTxIndex === index}
+            <div class="edit-row">
+              <input type="date" bind:value={editDate} />
+              <select bind:value={editFrom}>
+                {#each accounts as [accountName]}
+                  <option value={accountName}>{accountName}</option>
+                {/each}
+              </select>
+              <select bind:value={editTo}>
+                {#each accounts as [accountName]}
+                  <option value={accountName}>{accountName}</option>
+                {/each}
+              </select>
+              <input type="number" bind:value={editAmount} placeholder="Amount" />
+              <input type="text" bind:value={editDescription} placeholder="Description" />
+            </div>
+            <div class="action-row">
+              <button class="primary" on:click={() => editTransaction(index, { amount: editAmount, date: editDate, description: editDescription, from: editFrom, to: editTo })}>Save</button>
+              <button class="danger" on:click={() => deleteTransaction(index, tx)}>Delete</button>
+              <button class="ghost" on:click={cancelEdit}>Cancel</button>
+            </div>
           {:else}
-            <button on:click={() => showModal = true}>Edit</button>
+            <button class="primary" on:click={() => startEdit(index, tx)}>Edit</button>
           {/if}
         </div>
       </div>
@@ -99,6 +136,18 @@
       cursor: not-allowed;
     }
 
+    button.primary {
+      background-color: #007bff;
+    }
+
+    button.danger {
+      background-color: #d92d20;
+    }
+
+    button.ghost {
+      background-color: #6c757d;
+    }
+
     .selected {
       font-weight: bold;
       background-color: #ddd;
@@ -123,6 +172,19 @@
 
     .table-row {
         display: table-row;
+    }
+
+    .edit-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .pagination {

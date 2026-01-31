@@ -32,7 +32,7 @@
                 const userRef = doc(db, "users", user.uid);
                 dataToSetToStore = {
                     email: user.email,
-                    accounts: [],
+                    accounts: {},
                     txs: [],
                 };
                 await setDoc(userRef, dataToSetToStore, { merge: true });
