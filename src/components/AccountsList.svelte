@@ -51,6 +51,7 @@
         display: table;
         width: 100%;
         border-collapse: collapse;
+        overflow-x: auto;
     }
 
     .table-header {
@@ -62,6 +63,7 @@
         display: table-cell;
         padding: 10px;
         border: 1px solid #000;
+        vertical-align: middle;
     }
 
     .table-row {
@@ -71,6 +73,13 @@
         display: flex;
         gap: 8px;
         margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+    .edit-row input {
+        flex: 1;
+        min-width: 120px;
+        padding: 8px;
+        min-height: 44px;
     }
     .action-row {
         display: flex;
@@ -78,14 +87,17 @@
         flex-wrap: wrap;
     }
     button {
-        padding: 5px 10px;
+        padding: 8px 16px;
         border: none;
         background-color: #007bff;
         color: #fff;
         cursor: pointer;
+        min-height: 44px;
+        border-radius: 4px;
     }
     button:disabled {
         cursor: not-allowed;
+        opacity: 0.6;
     }
     button.primary {
         background-color: #007bff;
@@ -97,4 +109,52 @@
         background-color: #6c757d;
     }
     
+    @media (max-width: 768px) {
+        .table {
+            display: block;
+        }
+        .table-header {
+            display: none;
+        }
+        .table-row {
+            display: block;
+            margin-bottom: 15px;
+            border: 1px solid #000;
+            border-radius: 4px;
+            padding: 10px;
+        }
+        .table-cell {
+            display: block;
+            border: none;
+            padding: 8px 0;
+            text-align: left;
+        }
+        .table-cell:before {
+            content: attr(data-label);
+            font-weight: bold;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .table-cell:first-child:before {
+            content: "Account: ";
+        }
+        .table-cell:nth-child(2):before {
+            content: "Amount: ";
+        }
+        .table-cell:nth-child(3):before {
+            content: "";
+        }
+        .edit-row {
+            flex-direction: column;
+        }
+        .edit-row input {
+            width: 100%;
+        }
+        .action-row {
+            flex-direction: column;
+        }
+        .action-row button {
+            width: 100%;
+        }
+    }
 </style>

@@ -105,18 +105,22 @@
         justify-content: center;
         flex: 1;
         padding: 24px;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
     }
 
     form {
         display: flex;
         flex-direction: column;
         gap: 14px;
+        width: 100%;
     }
 
     form,
     .options {
-        width: 400px;
-        max-width: 100%;
+        width: 100%;
+        max-width: 400px;
         margin: 0 auto;
     }
 
@@ -126,7 +130,8 @@
 
     h1 {
         text-align: center;
-        font-size: 3rem;
+        font-size: 2rem;
+        margin: 0 0 1rem 0;
     }
 
     form label {
@@ -140,6 +145,7 @@
         background: transparent;
         color: white;
         padding: 14px;
+        min-height: 44px;
     }
 
     form input:focus {
@@ -161,6 +167,7 @@
         font-size: 1rem;
         display: grid;
         place-items: center;
+        min-height: 44px;
     }
 
     form button:hover {
@@ -240,11 +247,21 @@
         align-items: center;
         gap: 8px;
         justify-content: center;
+        flex-wrap: wrap;
     }
 
-    .options div p:last-of-type {
+    .options div button {
+        background: transparent;
+        border: 1px solid cyan;
         color: cyan;
+        padding: 8px 16px;
+        border-radius: 4px;
         cursor: pointer;
+        min-height: 44px;
+    }
+
+    .options div button:hover {
+        background: rgba(0, 255, 255, 0.1);
     }
 
     .loadingSpinner {
@@ -260,9 +277,12 @@
         }
     }
 
-    @media (min-width: 600px) {
-        form {
-            width: 50%;
+    @media (max-width: 768px) {
+        h1 {
+            font-size: 1.75rem;
+        }
+        .authContainer {
+            padding: 16px;
         }
     }
 </style>

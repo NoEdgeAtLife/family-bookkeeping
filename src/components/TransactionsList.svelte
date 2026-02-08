@@ -125,15 +125,18 @@
 
   <style>
     button {
-      padding: 5px 10px;
+      padding: 8px 16px;
       border: none;
       background-color: #007bff;
       color: #fff;
       cursor: pointer;
+      border-radius: 4px;
+      min-height: 44px;
     }
 
     button:disabled {
       cursor: not-allowed;
+      opacity: 0.6;
     }
 
     button.primary {
@@ -151,27 +154,30 @@
     .selected {
       font-weight: bold;
       background-color: #ddd;
+      color: #333;
     }
 
     .table {
-        display: table;
-        width: 100%;
-        border-collapse: collapse;
+      display: table;
+      width: 100%;
+      border-collapse: collapse;
+      overflow-x: auto;
     }
 
     .table-header {
-        display: table-row;
-        font-weight: bold;
+      display: table-row;
+      font-weight: bold;
     }
 
     .table-cell {
-        display: table-cell;
-        padding: 10px;
-        border: 1px solid #000;
+      display: table-cell;
+      padding: 10px;
+      border: 1px solid #000;
+      vertical-align: middle;
     }
 
     .table-row {
-        display: table-row;
+      display: table-row;
     }
 
     .edit-row {
@@ -179,6 +185,14 @@
       flex-wrap: wrap;
       gap: 8px;
       margin-bottom: 8px;
+    }
+    
+    .edit-row input,
+    .edit-row select {
+      flex: 1;
+      min-width: 120px;
+      padding: 8px;
+      min-height: 44px;
     }
 
     .action-row {
@@ -190,51 +204,97 @@
     .pagination {
       display: flex;
       justify-content: center;
+      align-items: center;
       margin-top: 10px;
+      flex-wrap: wrap;
+      gap: 5px;
     }
 
     .pagination button {
-      margin: 0 5px;
+      margin: 0;
     }
 
-    .pagination button:selected {
-      font-weight: bold;
+    .pagination span {
+      padding: 8px;
     }
 
-    @media (max-width: 600px) {
-      .table-cell {
+    input[type="text"] {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      min-height: 44px;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .table {
         display: block;
-        padding: 10px;
-        border: 1px solid #000;
-      }
-      .table-row {
-        display: flex;
       }
       .table-header {
-        display: flex;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .table-cell {
-        display: block;
-        padding: 10px;
-        border: 1px solid #000;
+        display: none;
       }
       .table-row {
-        display: flex;
-        margin-bottom: 10px;
-        font: 10px;
+        display: block;
+        margin-bottom: 15px;
+        border: 1px solid #000;
+        border-radius: 4px;
+        padding: 10px;
       }
-      .table-header {
-        display: flex;
+      .table-cell {
+        display: block;
+        border: none;
+        padding: 8px 0;
+        text-align: left;
+      }
+      .table-cell:before {
+        font-weight: bold;
+        display: inline-block;
+        margin-right: 10px;
+      }
+      .table-cell:nth-child(1):before {
+        content: "Date: ";
+      }
+      .table-cell:nth-child(2):before {
+        content: "From: ";
+      }
+      .table-cell:nth-child(3):before {
+        content: "To: ";
+      }
+      .table-cell:nth-child(4):before {
+        content: "Amount: ";
+      }
+      .table-cell:nth-child(5):before {
+        content: "Description: ";
+      }
+      .table-cell:nth-child(6):before {
+        content: "";
+      }
+      .edit-row {
+        flex-direction: column;
+      }
+      .edit-row input,
+      .edit-row select {
+        width: 100%;
+      }
+      .action-row {
+        flex-direction: column;
+      }
+      .action-row button {
+        width: 100%;
       }
       .pagination {
         flex-direction: column;
         align-items: center;
       }
       .pagination button {
-        margin: 5px 0;
+        width: 100%;
+        max-width: 200px;
+        margin: 3px 0;
+      }
+      input[type="text"] {
+        max-width: 100%;
       }
     }
   </style>
