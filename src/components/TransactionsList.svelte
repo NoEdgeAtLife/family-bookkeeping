@@ -153,8 +153,8 @@
 
     .selected {
       font-weight: bold;
-      background-color: #ddd;
-      color: #333;
+      background-color: #007bff;
+      color: #fff;
     }
 
     .table {

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Bookkeeping - Mobile Demo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            transition-duration: 0.15s;
+        }
+        html {
+            font-size: 14px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.5;
+        }
+        @media (max-width: 600px) {
+            html {
+                font-size: 16px;
+            }
+        }
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .mainContainer {
+            min-height: 100vh;
+            background: linear-gradient(to right, #BBCDD3, #9fbec9);
+            color: #333;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+        .contentContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .headerContainer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
+            border-bottom: 1px solid #000;
+            gap: 10px;
+        }
+        .headerContainer h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .headerContainer button {
+            flex-shrink: 0;
+            white-space: nowrap;
+            padding: 8px 16px;
+            min-height: 44px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .formContainer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
+            border-bottom: 1px solid #000;
+            gap: 10px;
+        }
+        .formContainer input {
+            flex: 1;
+            min-width: 0;
+            padding: 8px;
+            min-height: 44px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .formContainer button {
+            flex-shrink: 0;
+            white-space: nowrap;
+            padding: 8px 16px;
+            min-height: 44px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .table {
+            display: table;
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        .table-header {
+            display: table-row;
+            font-weight: bold;
+        }
+        .table-cell {
+            display: table-cell;
+            padding: 10px;
+            border: 1px solid #000;
+            vertical-align: middle;
+        }
+        .table-row {
+            display: table-row;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 4px;
+            min-height: 44px;
+        }
+        button.primary {
+            background-color: #007bff;
+        }
+        button.danger {
+            background-color: #d92d20;
+        }
+        
+        @media (max-width: 768px) {
+            .headerContainer h1 {
+                font-size: 1.25rem;
+            }
+            .formContainer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .formContainer input,
+            .formContainer button {
+                width: 100%;
+            }
+            .table {
+                display: block;
+            }
+            .table-header {
+                display: none;
+            }
+            .table-row {
+                display: block;
+                margin-bottom: 15px;
+                border: 1px solid #000;
+                border-radius: 4px;
+                padding: 10px;
+            }
+            .table-cell {
+                display: block;
+                border: none;
+                padding: 8px 0;
+                text-align: left;
+            }
+            .table-cell:before {
+                content: attr(data-label);
+                font-weight: bold;
+                display: inline-block;
+                margin-right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="mainContainer">
+        <div class="contentContainer">
+            <div class="headerContainer">
+                <h1>Accounts</h1>
+                <button>Sign Out</button>
+            </div>
+            
+            <div class="formContainer">
+                <input type="text" placeholder="Account Name" />
+                <input type="number" placeholder="Amount" />
+                <button>Add Account</button>
+            </div>
+            
+            <div class="table">
+                <div class="table-header">
+                    <div class="table-cell">Account Name</div>
+                    <div class="table-cell">Amount</div>
+                    <div class="table-cell">Actions</div>
+                </div>
+                <div class="table-row">
+                    <div class="table-cell" data-label="Account:">Checking</div>
+                    <div class="table-cell" data-label="Amount:">$1,234.56</div>
+                    <div class="table-cell" data-label="">
+                        <button class="primary">Edit</button>
+                    </div>
+                </div>
+                <div class="table-row">
+                    <div class="table-cell" data-label="Account:">Savings</div>
+                    <div class="table-cell" data-label="Amount:">$5,678.90</div>
+                    <div class="table-cell" data-label="">
+                        <button class="primary">Edit</button>
+                    </div>
+                </div>
+                <div class="table-row">
+                    <div class="table-cell" data-label="Account:">Credit Card</div>
+                    <div class="table-cell" data-label="Amount:">-$234.50</div>
+                    <div class="table-cell" data-label="">
+                        <button class="primary">Edit</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 30px; width: 100%;">
+                <h2>Transactions</h2>
+                <div class="formContainer" style="border-bottom: none;">
+                    <select style="flex: 1; padding: 8px; min-height: 44px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option>From Account</option>
+                        <option>Checking</option>
+                        <option>Savings</option>
+                    </select>
+                    <select style="flex: 1; padding: 8px; min-height: 44px; border: 1px solid #ccc; border-radius: 4px;">
+                        <option>To Account</option>
+                        <option>Checking</option>
+                        <option>Savings</option>
+                    </select>
+                    <input type="number" placeholder="Amount" />
+                    <input type="date" />
+                    <button>Add Transaction</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
