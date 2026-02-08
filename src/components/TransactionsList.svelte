@@ -240,27 +240,39 @@
 
     @media (max-width: 768px) {
       .table {
-        font-size: 0.875rem;
-        min-width: 900px;
+        font-size: 0.75rem;
+        min-width: 700px;
       }
       .table-cell {
-        padding: 8px;
+        padding: 4px 6px;
       }
       button {
-        padding: 6px 12px;
-        font-size: 0.875rem;
+        padding: 4px 8px;
+        font-size: 0.75rem;
+      }
+      .edit-row {
+        gap: 4px;
       }
       .edit-row input,
       .edit-row select {
-        padding: 6px;
-        font-size: 0.875rem;
+        padding: 4px 6px;
+        font-size: 0.75rem;
+        min-width: 100px;
+      }
+      .action-row {
+        gap: 4px;
       }
       .pagination button {
-        padding: 8px 12px;
-        font-size: 0.875rem;
+        padding: 6px 10px;
+        font-size: 0.75rem;
+      }
+      .pagination span {
+        padding: 4px;
       }
       input[type="text"] {
         max-width: 100%;
+        padding: 6px;
+        font-size: 0.75rem;
       }
     }
   </style>

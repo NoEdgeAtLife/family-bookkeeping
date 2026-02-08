@@ -121,19 +121,26 @@
     
     @media (max-width: 768px) {
         .table {
-            font-size: 0.875rem;
-            min-width: 600px;
+            font-size: 0.75rem;
+            min-width: 450px;
         }
         .table-cell {
-            padding: 8px;
+            padding: 4px 6px;
         }
         button {
-            padding: 6px 12px;
-            font-size: 0.875rem;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+        }
+        .edit-row {
+            gap: 4px;
         }
         .edit-row input {
-            padding: 6px;
-            font-size: 0.875rem;
+            padding: 4px 6px;
+            font-size: 0.75rem;
+            min-width: 100px;
+        }
+        .action-row {
+            gap: 4px;
         }
     }
 </style>
