@@ -20,8 +20,15 @@
 <style>
     h1 {
         color: #333;
-        font-size: 24px;
+        font-size: 1.5rem;
         margin-bottom: 16px;
+        text-align: center;
+    }
+
+    h2 {
+        color: #333;
+        font-size: 1.125rem;
+        margin-bottom: 8px;
     }
 
     select {
@@ -29,6 +36,8 @@
         border: 1px solid #ccc;
         border-radius: 4px;
         margin-bottom: 16px;
+        width: 100%;
+        min-height: 44px;
     }
 
     input[type="number"] {
@@ -36,6 +45,8 @@
         border: 1px solid #ccc;
         border-radius: 4px;
         margin-bottom: 16px;
+        width: 100%;
+        min-height: 44px;
     }
 
     button {
@@ -45,10 +56,17 @@
         border: none;
         border-radius: 4px;
         cursor: pointer;
+        width: 100%;
+        min-height: 44px;
+    }
+
+    button:hover {
+        background-color: #555;
     }
 
     p {
         margin-bottom: 8px;
+        text-align: center;
     }
 
     .form-container {
@@ -56,13 +74,25 @@
         color: #333;
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
+        width: 100%;
+        padding: 0 10px;
     }
 
-    @media (min-width: 600px) {
+    .result {
+        padding: 10px;
+        text-align: center;
+        margin-top: 10px;
+    }
+
+    @media (min-width: 768px) {
+        h1 {
+            font-size: 1.75rem;
+        }
         .form-container {
             width: 50%;
             margin: 0 auto;
+            padding: 0;
         }
     }
 </style>
@@ -91,7 +121,7 @@
 
 <!-- if negative: show: account2name pay account1name : amount, else swap the payee and receipt-->
 
-<div>
+<div class="result">
     {#if transactionAmount === undefined}
         <p>Enter the accounts and percentage to calculate the transaction amount</p>
     {:else if transactionAmount === 0}

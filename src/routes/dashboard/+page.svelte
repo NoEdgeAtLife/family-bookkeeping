@@ -325,6 +325,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
   }
   .headerContainer {
     display: flex;
@@ -333,6 +336,17 @@
     width: 100%;
     padding: 10px;
     border-bottom: 1px solid #000;
+    gap: 10px;
+  }
+  .headerContainer h1 {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+  .headerContainer button {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 8px 16px;
+    min-height: 44px;
   }
   .formContainer {
     display: flex;
@@ -341,6 +355,19 @@
     width: 100%;
     padding: 10px;
     border-bottom: 1px solid #000;
+    gap: 10px;
+  }
+  .formContainer input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px;
+    min-height: 44px;
+  }
+  .formContainer button {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 8px 16px;
+    min-height: 44px;
   }
   main {
     display: flex;
@@ -354,11 +381,30 @@
   }
   .transactionContainer {
     margin-top: 20px;
+    width: 100%;
+  }
+  .transactionContainer h2 {
+    font-size: 1.25rem;
+    margin-bottom: 10px;
   }
   .transactionForm {
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-bottom: 10px;
+  }
+  .transactionForm select,
+  .transactionForm input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px;
+    min-height: 44px;
+  }
+  .transactionForm button {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    min-height: 44px;
+    white-space: nowrap;
   }
   .txStatus {
     display: flex;
@@ -373,6 +419,7 @@
     background: rgba(255, 255, 255, 0.6);
     border: 1px solid rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(6px);
+    max-width: calc(100vw - 40px);
   }
   .txStatus .success {
     color: #1a7f37;
@@ -389,6 +436,7 @@
     padding: 4px 8px;
     border-radius: 4px;
     cursor: pointer;
+    min-height: 44px;
   }
   .txStatus .dismiss {
     border: none;
@@ -396,23 +444,36 @@
     color: #333;
     cursor: pointer;
     font-size: 14px;
+    min-width: 44px;
+    min-height: 44px;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 768px) {
+    .headerContainer h1 {
+      font-size: 1.25rem;
+    }
     .formContainer {
-      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
     }
-    main {
-      width: 100%;
-    }
-    .mainContainer {
-      width: 100%;
-    }
-    .transactionContainer {
+    .formContainer input,
+    .formContainer button {
       width: 100%;
     }
     .transactionForm {
       flex-direction: column;
+    }
+    .transactionForm select,
+    .transactionForm input,
+    .transactionForm button {
+      width: 100%;
+    }
+    .txStatus {
+      flex-direction: column;
+      align-items: stretch;
+      left: 20px;
+      right: 20px;
+      bottom: 10px;
     }
   }
 </style>
