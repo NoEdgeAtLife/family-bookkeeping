@@ -61,50 +61,52 @@
     <button on:click={exportTx}>export</button>
     <input type="text" placeholder="Search transactions by description" bind:value={searchQuery} on:input={() => currentPage = 1} />
   </div>
-  <div class="table">
-    <div class="table-header">
-      <div class="table-cell">Date</div>
-      <div class="table-cell">From Account</div>
-      <div class="table-cell">To Account</div>
-      <div class="table-cell">Amount</div>
-      <div class="table-cell">Descriptions</div>
-      <div class="table-cell">Actions</div>
-    </div>
-    {#each paginatedTxs as [index, tx]}
-      <div class="table-row">
-        <div class="table-cell">{tx.date}</div>
-        <div class="table-cell">{tx.from}</div>
-        <div class="table-cell">{tx.to}</div>
-        <div class="table-cell">{tx.amount}</div>
-        <div class="table-cell">{tx.description}</div>
-        <div class="table-cell">
-          {#if editingTxIndex === index}
-            <div class="edit-row">
-              <input type="date" bind:value={editDate} />
-              <select bind:value={editFrom}>
-                {#each accounts as [accountName]}
-                  <option value={accountName}>{accountName}</option>
-                {/each}
-              </select>
-              <select bind:value={editTo}>
-                {#each accounts as [accountName]}
-                  <option value={accountName}>{accountName}</option>
-                {/each}
-              </select>
-              <input type="number" bind:value={editAmount} placeholder="Amount" />
-              <input type="text" bind:value={editDescription} placeholder="Description" />
-            </div>
-            <div class="action-row">
-              <button class="primary" on:click={() => editTransaction(index, { amount: editAmount, date: editDate, description: editDescription, from: editFrom, to: editTo })}>Save</button>
-              <button class="danger" on:click={() => deleteTransaction(index, tx)}>Delete</button>
-              <button class="ghost" on:click={cancelEdit}>Cancel</button>
-            </div>
-          {:else}
-            <button class="primary" on:click={() => startEdit(index, tx)}>Edit</button>
-          {/if}
-        </div>
+  <div class="table-wrapper">
+    <div class="table">
+      <div class="table-header">
+        <div class="table-cell">Date</div>
+        <div class="table-cell">From Account</div>
+        <div class="table-cell">To Account</div>
+        <div class="table-cell">Amount</div>
+        <div class="table-cell">Descriptions</div>
+        <div class="table-cell">Actions</div>
       </div>
-    {/each}
+      {#each paginatedTxs as [index, tx]}
+        <div class="table-row">
+          <div class="table-cell">{tx.date}</div>
+          <div class="table-cell">{tx.from}</div>
+          <div class="table-cell">{tx.to}</div>
+          <div class="table-cell">{tx.amount}</div>
+          <div class="table-cell">{tx.description}</div>
+          <div class="table-cell">
+            {#if editingTxIndex === index}
+              <div class="edit-row">
+                <input type="date" bind:value={editDate} />
+                <select bind:value={editFrom}>
+                  {#each accounts as [accountName]}
+                    <option value={accountName}>{accountName}</option>
+                  {/each}
+                </select>
+                <select bind:value={editTo}>
+                  {#each accounts as [accountName]}
+                    <option value={accountName}>{accountName}</option>
+                  {/each}
+                </select>
+                <input type="number" bind:value={editAmount} placeholder="Amount" />
+                <input type="text" bind:value={editDescription} placeholder="Description" />
+              </div>
+              <div class="action-row">
+                <button class="primary" on:click={() => editTransaction(index, { amount: editAmount, date: editDate, description: editDescription, from: editFrom, to: editTo })}>Save</button>
+                <button class="danger" on:click={() => deleteTransaction(index, tx)}>Delete</button>
+                <button class="ghost" on:click={cancelEdit}>Cancel</button>
+              </div>
+            {:else}
+              <button class="primary" on:click={() => startEdit(index, tx)}>Edit</button>
+            {/if}
+          </div>
+        </div>
+      {/each}
+    </div>
   </div>
 
   <div class="pagination">
@@ -132,6 +134,7 @@
       cursor: pointer;
       border-radius: 4px;
       min-height: 44px;
+      white-space: nowrap;
     }
 
     button:disabled {
@@ -157,11 +160,17 @@
       color: #fff;
     }
 
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     .table {
       display: table;
       width: 100%;
       border-collapse: collapse;
-      overflow-x: auto;
+      min-width: 800px;
     }
 
     .table-header {
@@ -174,6 +183,7 @@
       padding: 10px;
       border: 1px solid #000;
       vertical-align: middle;
+      white-space: nowrap;
     }
 
     .table-row {
@@ -230,68 +240,24 @@
 
     @media (max-width: 768px) {
       .table {
-        display: block;
-      }
-      .table-header {
-        display: none;
-      }
-      .table-row {
-        display: block;
-        margin-bottom: 15px;
-        border: 1px solid #000;
-        border-radius: 4px;
-        padding: 10px;
+        font-size: 0.875rem;
+        min-width: 900px;
       }
       .table-cell {
-        display: block;
-        border: none;
-        padding: 8px 0;
-        text-align: left;
+        padding: 8px;
       }
-      .table-cell:before {
-        font-weight: bold;
-        display: inline-block;
-        margin-right: 10px;
-      }
-      .table-cell:nth-child(1):before {
-        content: "Date: ";
-      }
-      .table-cell:nth-child(2):before {
-        content: "From: ";
-      }
-      .table-cell:nth-child(3):before {
-        content: "To: ";
-      }
-      .table-cell:nth-child(4):before {
-        content: "Amount: ";
-      }
-      .table-cell:nth-child(5):before {
-        content: "Description: ";
-      }
-      .table-cell:nth-child(6):before {
-        content: "";
-      }
-      .edit-row {
-        flex-direction: column;
+      button {
+        padding: 6px 12px;
+        font-size: 0.875rem;
       }
       .edit-row input,
       .edit-row select {
-        width: 100%;
-      }
-      .action-row {
-        flex-direction: column;
-      }
-      .action-row button {
-        width: 100%;
-      }
-      .pagination {
-        flex-direction: column;
-        align-items: center;
+        padding: 6px;
+        font-size: 0.875rem;
       }
       .pagination button {
-        width: 100%;
-        max-width: 200px;
-        margin: 3px 0;
+        padding: 8px 12px;
+        font-size: 0.875rem;
       }
       input[type="text"] {
         max-width: 100%;
