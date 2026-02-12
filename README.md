@@ -2,6 +2,10 @@
 
 This is a family bookkeeping application built with Svelte and Firebase.
 
+## 📱 Progressive Web App (PWA)
+
+This app is installable as a Progressive Web App on iPhone, Android, and desktop devices. See [PWA_README.md](PWA_README.md) for detailed information about PWA features and installation instructions.
+
 ## Installation 
 
 This project requires Node.js version 22 or later.
