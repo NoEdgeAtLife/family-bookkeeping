@@ -176,6 +176,9 @@
       lastTxPayload = payload;
       try {
         await submitTransaction(payload);
+        // Clear the input fields after successful add
+        txAmount = "";
+        txDescription = "";
       } catch (error) {
         console.error(error);
         txError = "Failed to add transaction. Please retry.";
@@ -260,15 +263,17 @@
 </script>
 
 {#if !$authStore.loading}
-<div class="mainContainer">
+  <div class="mainContainer">
+    <div class="signoutContainer">
+      <button on:click={() => authHandlers.logout()}>Sign Out</button>
+    </div>
     <Calculator {accounts} />
   <div class="headerContainer">
     <h1>Accounts</h1>
-    <button on:click={() => authHandlers.logout()}>Sign Out</button>
   </div>
   <div class="formContainer">
     <input type="text" bind:value={accountName} placeholder="Account Name" />
-    <input type="number" bind:value={amount} placeholder="Amount" />
+    <input type="number" bind:value={amount} placeholder="$" />
     <button on:click={addAccount}>Add Account</button>
   </div>
 
@@ -281,20 +286,32 @@
   <div class="transactionContainer">
     <h2>Transactions</h2>
     <div class="transactionForm">
-      <select bind:value={fromAccount}>
-        {#each accounts as [accountName, amount]}
-          <option value={accountName}>{accountName}</option>
-        {/each}
-      </select>
-      <select bind:value={toAccount}>
-        {#each accounts as [accountName, amount]}
-          <option value={accountName}>{accountName}</option>
-        {/each}
-      </select>
-      <input type="number" bind:value={txAmount} placeholder="Amount" />
-      <input type="date" bind:value={txDate} placeholder={txDate} />
-      <input type="text" bind:value={txDescription} placeholder="Description" />
-      <button on:click={addTransaction} disabled={txSubmitting}>Add Transaction</button>
+      <div class="tf-row tf-accounts">
+        <select bind:value={fromAccount}>
+          <option value="">From account</option>
+          {#each accounts as [accountName, amount]}
+            <option value={accountName}>{accountName}</option>
+          {/each}
+        </select>
+        <select bind:value={toAccount}>
+          <option value="">To account</option>
+          {#each accounts as [accountName, amount]}
+            <option value={accountName}>{accountName}</option>
+          {/each}
+        </select>
+      </div>
+      <div class="tf-row tf-amount-desc">
+        <input type="number" bind:value={txAmount} placeholder="$" />
+        <input type="text" bind:value={txDescription} placeholder="Description" />
+      </div>
+      <div class="tf-row tf-date-add">
+        <input type="date" bind:value={txDate} placeholder={txDate} />
+        <button class="icon add" on:click={addTransaction} disabled={txSubmitting} aria-label="Add transaction">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6z" fill="currentColor" />
+          </svg>
+        </button>
+      </div>
     </div>
     {#if txStatus || txError}
       <div class="txStatus" aria-live="polite">
@@ -335,18 +352,29 @@
     align-items: center;
     width: 100%;
     padding: 10px;
-    border-bottom: 1px solid #000;
     gap: 10px;
+    position: relative;
   }
   .headerContainer h1 {
     font-size: 1.5rem;
     margin: 0;
   }
-  .headerContainer button {
+  .signoutContainer {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    padding: 8px 0 0 0;
+  }
+  .signoutContainer button {
     flex-shrink: 0;
     white-space: nowrap;
-    padding: 8px 16px;
-    min-height: 44px;
+    padding: 6px 12px;
+    min-height: 36px;
+    border-radius: 6px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    cursor: pointer;
   }
   .formContainer {
     display: flex;
@@ -354,20 +382,25 @@
     align-items: center;
     width: 100%;
     padding: 10px;
-    border-bottom: 1px solid #000;
     gap: 10px;
   }
   .formContainer input {
     flex: 1;
     min-width: 0;
-    padding: 8px;
-    min-height: 44px;
+    padding: 6px 8px;
+    min-height: 36px;
+    border-radius: 6px;
+    border: 1px solid #e6e9ee;
+    box-shadow: inset 0 1px 2px rgba(16,24,40,0.03);
   }
   .formContainer button {
     flex-shrink: 0;
     white-space: nowrap;
-    padding: 8px 16px;
-    min-height: 44px;
+    padding: 6px 12px;
+    min-height: 36px;
+    border-radius: 6px;
+    background-color: #007bff;
+    color: #fff;
   }
   main {
     display: flex;
@@ -390,21 +423,40 @@
   .transactionForm {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: flex-start;
   }
-  .transactionForm select,
-  .transactionForm input {
+  .transactionForm .tf-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+  .transactionForm .tf-row > * {
     flex: 1;
     min-width: 0;
-    padding: 8px;
-    min-height: 44px;
+    padding: 6px 8px;
+    min-height: 36px;
+    border-radius: 6px;
+    border: 1px solid #e6e9ee;
+    box-shadow: inset 0 1px 2px rgba(16,24,40,0.03);
   }
-  .transactionForm button {
-    flex-shrink: 0;
-    padding: 8px 16px;
-    min-height: 44px;
-    white-space: nowrap;
+  .transactionForm .tf-row .add {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    padding: 0;
+  }
+  .transactionForm .tf-row .add:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
   .txStatus {
     display: flex;
@@ -453,20 +505,39 @@
       font-size: 1.25rem;
     }
     .formContainer {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .formContainer input,
-    .formContainer button {
+      flex-direction: row;
+      align-items: center;
+      gap: 8px;
       width: 100%;
+      padding: 0 6px;
+    }
+    .formContainer input {
+      flex: 1 1 auto;
+      margin-bottom: 0;
+      min-width: 0;
+    }
+    .formContainer button {
+      flex: 0 0 auto;
+      width: auto;
+      margin-bottom: 0;
+      padding: 6px 10px;
     }
     .transactionForm {
       flex-direction: column;
+      gap: 6px;
     }
-    .transactionForm select,
-    .transactionForm input,
-    .transactionForm button {
-      width: 100%;
+    .transactionForm .tf-row {
+      flex-direction: row;
+    }
+    .transactionForm .tf-accounts > *,
+    .transactionForm .tf-amount-desc > * {
+      flex: 1 1 50%;
+    }
+    .transactionForm .tf-date-add > input {
+      flex: 1 1 auto;
+    }
+    .transactionForm .tf-date-add .add {
+      margin-left: 8px;
     }
     .txStatus {
       flex-direction: column;

@@ -32,36 +32,38 @@
     }
 
     select {
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        margin-bottom: 16px;
+        padding: 6px 8px;
+        border: 1px solid #e6e9ee;
+        border-radius: 6px;
+        margin-bottom: 12px;
         width: 100%;
-        min-height: 44px;
+        min-height: 36px;
+        box-shadow: inset 0 1px 2px rgba(16,24,40,0.03);
     }
 
     input[type="number"] {
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        margin-bottom: 16px;
+        padding: 6px 8px;
+        border: 1px solid #e6e9ee;
+        border-radius: 6px;
+        margin-bottom: 12px;
         width: 100%;
-        min-height: 44px;
+        min-height: 36px;
+        box-shadow: inset 0 1px 2px rgba(16,24,40,0.03);
     }
 
     button {
-        padding: 8px 16px;
-        background-color: #333;
+        padding: 6px 12px;
+        background-color: #007bff;
         color: #fff;
         border: none;
-        border-radius: 4px;
+        border-radius: 6px;
         cursor: pointer;
         width: 100%;
-        min-height: 44px;
+        min-height: 36px;
     }
 
     button:hover {
-        background-color: #555;
+        background-color: #006ae6;
     }
 
     p {
@@ -70,7 +72,7 @@
     }
 
     .form-container {
-        margin-bottom: 16px;
+        margin-bottom: 12px;
         color: #333;
         display: flex;
         flex-direction: column;
@@ -93,6 +95,31 @@
             width: 50%;
             margin: 0 auto;
             padding: 0;
+        }
+    }
+
+    @media (max-width: 768px) {
+        /* Make the rebalance form a single compact row on small screens */
+        .form-container {
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+            padding: 0 6px;
+        }
+        .form-container h2 {
+            display: none;
+        }
+        .form-container select,
+        .form-container input[type="number"] {
+            flex: 1 1 auto;
+            margin-bottom: 0;
+            min-width: 0;
+        }
+        .form-container button {
+            flex: 0 0 auto;
+            width: auto;
+            min-width: 80px;
+            padding: 6px 10px;
         }
     }
 </style>
