@@ -110,51 +110,50 @@
             <div class="table-row">
                 <div class="table-cell">{account[0]}</div>
                 <div class="table-cell">{fmt(account[1])}</div>
-                                <div class="table-cell">
-                                        <button class="icon edit" on:click={() => startEdit(account)} aria-label="Edit">
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="currentColor" />
-                                                <path d="M20.71 7.04a1.003 1.003 0 0 0 0-1.41l-2.34-2.34a1.003 1.003 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor" />
-                                            </svg>
-                                        </button>
-                                </div>
+                <div class="table-cell">
+                    <button class="icon edit" on:click={() => startEdit(account)} aria-label="Edit">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="currentColor" />
+                            <path d="M20.71 7.04a1.003 1.003 0 0 0 0-1.41l-2.34-2.34a1.003 1.003 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor" />
+                        </svg>
+                    </button>
+                </div>
             </div>
-
-                {#if showEditModal}
-                    <div class="modal-overlay">
-                        <button class="modal-backdrop" type="button" aria-label="Close edit modal" on:click={cancelEdit}></button>
-                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                        <div class="modal" role="dialog" aria-modal="true" on:click|stopPropagation tabindex="-1" on:keydown={(e) => e.key === 'Escape' && cancelEdit()}>
-                            <h3>Edit Account</h3>
-                            <div class="modal-row">
-                                <label for="edit-account-name">Account name</label>
-                                <input id="edit-account-name" class="compact-input" type="text" bind:value={newAccountName} />
-                            </div>
-                            <div class="modal-row">
-                                <label for="edit-account-amount">$</label>
-                                <input id="edit-account-amount" class="compact-input" type="number" bind:value={newAmount} />
-                            </div>
-                            <div class="modal-actions">
-                                <button class="primary" on:click={handleSaveAccount} disabled={editSubmitting}>Save</button>
-                                <button class="danger" on:click={handleDeleteAccount} disabled={editSubmitting}>Delete</button>
-                                <button class="ghost" on:click={cancelEdit}>Cancel</button>
-                            </div>
-                            {#if editStatus || editError}
-                                <div class="txStatus" aria-live="polite">
-                                    {#if editStatus}
-                                        <span class="success">{editStatus}</span>
-                                    {/if}
-                                    {#if editError}
-                                        <span class="error">{editError}</span>
-                                        <button class="retry" on:click={retryEdit} disabled={editSubmitting}>Retry</button>
-                                        <button class="dismiss" on:click={dismissEditStatus} aria-label="Dismiss">✕</button>
-                                    {/if}
-                                </div>
-                            {/if}
-                        </div>
-                    </div>
-                {/if}
         {/each}
+        {#if showEditModal}
+            <div class="modal-overlay">
+                <div class="modal-backdrop" role="button" aria-label="Close edit modal" tabindex="0" on:click={cancelEdit} on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && cancelEdit()}></div>
+                <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                <div class="modal" role="dialog" aria-modal="true" on:click|stopPropagation tabindex="-1" on:keydown={(e) => e.key === 'Escape' && cancelEdit()}>
+                    <h3>Edit Account</h3>
+                    <div class="modal-row">
+                        <label for="edit-account-name">Account name</label>
+                        <input id="edit-account-name" class="compact-input" type="text" bind:value={newAccountName} />
+                    </div>
+                    <div class="modal-row">
+                        <label for="edit-account-amount">$</label>
+                        <input id="edit-account-amount" class="compact-input" type="number" bind:value={newAmount} />
+                    </div>
+                    <div class="modal-actions">
+                        <button class="primary" on:click={handleSaveAccount} disabled={editSubmitting}>Save</button>
+                        <button class="danger" on:click={handleDeleteAccount} disabled={editSubmitting}>Delete</button>
+                        <button class="ghost" on:click={cancelEdit}>Cancel</button>
+                    </div>
+                    {#if editStatus || editError}
+                        <div class="txStatus" aria-live="polite">
+                            {#if editStatus}
+                                <span class="success">{editStatus}</span>
+                            {/if}
+                            {#if editError}
+                                <span class="error">{editError}</span>
+                                <button class="retry" on:click={retryEdit} disabled={editSubmitting}>Retry</button>
+                            {/if}
+                            <button class="dismiss" on:click={dismissEditStatus} aria-label="Dismiss">✕</button>
+                        </div>
+                    {/if}
+                </div>
+            </div>
+        {/if}
     </div>
 </div>
 
@@ -228,6 +227,7 @@
             background: rgba(16,24,40,0.06);
             border: none;
             padding: 0;
+            z-index: 1000;
         }
         .modal {
             background: #fff;
@@ -236,6 +236,8 @@
             width: 100%;
             max-width: 520px;
             box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 1001;
         }
         .modal h3 {
             margin: 0 0 8px 0;

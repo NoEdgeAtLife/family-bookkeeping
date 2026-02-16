@@ -206,79 +206,80 @@
           <div class="table-cell">
             <div class="action-row">
               <button class="icon edit" on:click={() => startEdit(index, tx)} aria-label="Edit">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="currentColor" />
                   <path d="M20.71 7.04a1.003 1.003 0 0 0 0-1.41l-2.34-2.34a1.003 1.003 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor" />
                 </svg>
               </button>
             </div>
           </div>
-            {#if showEditModal}
-              <div class="modal-overlay">
-                <button class="modal-backdrop" type="button" aria-label="Close edit modal" on:click={cancelEdit}></button>
-                <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                <div class="modal" role="dialog" aria-modal="true" on:click|stopPropagation tabindex="-1" on:keydown={(e) => e.key === 'Escape' && cancelEdit()}>
-                  <h3>Edit Transaction</h3>
-                  <div class="modal-row">
-                    <label for={"edit-date-" + editingTxIndex}>Date</label>
-                    <input class="compact-input" id={"edit-date-" + editingTxIndex} type="date" bind:value={editDate} />
-                  </div>
-                  <div class="modal-row">
-                    <label for={"edit-from-" + editingTxIndex}>From</label>
-                    <select class="compact-select" id={"edit-from-" + editingTxIndex} bind:value={editFrom}>
-                      <option value="">Select account</option>
-                      {#each accounts as [accountName]}
-                        <option value={accountName}>{accountName}</option>
-                      {/each}
-                    </select>
-                  </div>
-                  <div class="modal-row">
-                    <label for={"edit-to-" + editingTxIndex}>To</label>
-                    <select class="compact-select" id={"edit-to-" + editingTxIndex} bind:value={editTo}>
-                      <option value="">Select account</option>
-                      {#each accounts as [accountName]}
-                        <option value={accountName}>{accountName}</option>
-                      {/each}
-                    </select>
-                  </div>
-                  <div class="modal-row">
-                    <label for={"edit-amount-" + editingTxIndex}>$</label>
-                    <input class="compact-input" id={"edit-amount-" + editingTxIndex} type="number" bind:value={editAmount} />
-                  </div>
-                  <div class="modal-row">
-                    <label for={"edit-desc-" + editingTxIndex}>Description</label>
-                    <input class="compact-input" id={"edit-desc-" + editingTxIndex} type="text" bind:value={editDescription} />
-                  </div>
-                  <div class="modal-actions">
-                              <button class="primary" on:click={() => handleSave(editingTxIndex)} disabled={editSubmitting}>Save</button>
-                              {#if !deleteConfirm}
-                                <button class="danger" on:click={() => (deleteConfirm = true)} disabled={deleteSubmitting}>Delete</button>
-                              {:else}
-                                <span>Confirm delete?</span>
-                                <button class="danger" on:click={() => handleDelete(editingTxIndex, editingTx)} disabled={deleteSubmitting}>Yes, delete</button>
-                                <button class="ghost" on:click={() => (deleteConfirm = false)}>Cancel</button>
-                              {/if}
-                              <button class="ghost" on:click={cancelEdit}>Cancel</button>
-                            </div>
-                  {#if editStatus || editError}
-                    <div class="txStatus" aria-live="polite">
-                      {#if editStatus}
-                        <span class="success">{editStatus}</span>
-                      {/if}
-                      {#if editError}
-                        <span class="error">{editError}</span>
-                        <button class="retry" on:click={retryEdit} disabled={editSubmitting}>Retry</button>
-                        <button class="dismiss" on:click={dismissEditStatus} aria-label="Dismiss">✕</button>
-                      {/if}
-                    </div>
-                  {/if}
-                </div>
-              </div>
-            {/if}
         </div>
       {/each}
     </div>
   </div>
+
+  {#if showEditModal}
+    <div class="modal-overlay">
+      <div class="modal-backdrop" role="button" aria-label="Close edit modal" tabindex="0" on:click={cancelEdit} on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && cancelEdit()}></div>
+      <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+      <div class="modal" role="dialog" aria-modal="true" on:click|stopPropagation tabindex="-1" on:keydown={(e) => e.key === 'Escape' && cancelEdit()}>
+        <h3>Edit Transaction</h3>
+        <div class="modal-row">
+          <label for={"edit-date-" + editingTxIndex}>Date</label>
+          <input class="compact-input" id={"edit-date-" + editingTxIndex} type="date" bind:value={editDate} />
+        </div>
+        <div class="modal-row">
+          <label for={"edit-from-" + editingTxIndex}>From</label>
+          <select class="compact-select" id={"edit-from-" + editingTxIndex} bind:value={editFrom}>
+            <option value="">Select account</option>
+            {#each accounts as [accountName]}
+              <option value={accountName}>{accountName}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="modal-row">
+          <label for={"edit-to-" + editingTxIndex}>To</label>
+          <select class="compact-select" id={"edit-to-" + editingTxIndex} bind:value={editTo}>
+            <option value="">Select account</option>
+            {#each accounts as [accountName]}
+              <option value={accountName}>{accountName}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="modal-row">
+          <label for={"edit-amount-" + editingTxIndex}>$</label>
+          <input class="compact-input" id={"edit-amount-" + editingTxIndex} type="number" bind:value={editAmount} />
+        </div>
+        <div class="modal-row">
+          <label for={"edit-desc-" + editingTxIndex}>Description</label>
+          <input class="compact-input" id={"edit-desc-" + editingTxIndex} type="text" bind:value={editDescription} />
+        </div>
+        <div class="modal-actions">
+          <button class="primary" on:click={() => handleSave(editingTxIndex)} disabled={editSubmitting}>Save</button>
+          {#if !deleteConfirm}
+            <button class="danger" on:click={() => (deleteConfirm = true)} disabled={deleteSubmitting}>Delete</button>
+          {:else}
+            <span>Confirm delete?</span>
+            <button class="danger" on:click={() => handleDelete(editingTxIndex, editingTx)} disabled={deleteSubmitting}>Yes, delete</button>
+            <button class="ghost" on:click={() => (deleteConfirm = false)}>Cancel</button>
+          {/if}
+          <button class="ghost" on:click={cancelEdit}>Cancel</button>
+        </div>
+        {#if editStatus || editError}
+          <div class="txStatus" aria-live="polite">
+            {#if editStatus}
+              <span class="success">{editStatus}</span>
+            {/if}
+            {#if editError}
+              <span class="error">{editError}</span>
+              <button class="retry" on:click={retryEdit} disabled={editSubmitting}>Retry</button>
+            {/if}
+            <button class="dismiss" on:click={dismissEditStatus} aria-label="Dismiss">✕</button>
+          </div>
+        {/if}
+      </div>
+    </div>
+  {/if}
 
   <div class="pagination">
     <button on:click={previousPage} disabled={currentPage === 1}>Previous</button>
@@ -460,6 +461,7 @@
       background: rgba(16,24,40,0.06);
       border: none;
       padding: 0;
+      z-index: 1000;
     }
     .modal {
       background: #fff;
@@ -468,6 +470,8 @@
       width: 100%;
       max-width: 520px;
       box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+      position: relative;
+      z-index: 1001;
     }
     .modal h3 {
       margin: 0 0 8px 0;
