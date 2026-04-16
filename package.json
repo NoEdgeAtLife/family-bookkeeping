@@ -6,7 +6,11 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"generate-icons": "node generate-icons.js"
+		"generate-icons": "node generate-icons.js",
+		"migrate": "node scripts/migrate-all-users.js migrate",
+		"migrate:dry-run": "node scripts/migrate-all-users.js migrate --dry-run",
+		"migrate:validate": "node scripts/migrate-all-users.js validate",
+		"migrate:compare": "node scripts/migrate-all-users.js compare"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^3.0.0",
