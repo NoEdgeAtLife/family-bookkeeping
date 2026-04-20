@@ -212,47 +212,65 @@ export async function getTransactionsByDateRange(userId, startDate, endDate) {
  */
 export async function addTransaction(userId, transaction) {
     const { fromAccountId, toAccountId, fromAccountName, toAccountName, amount, date, description } = transaction
+    const amountValue = Number(amount)
+
+    if (!fromAccountId || !toAccountId) {
+        throw new Error("Transaction accounts are required")
+    }
+
+    if (!Number.isFinite(amountValue)) {
+        throw new Error("Invalid transaction amount")
+    }
+
+    const parsedDate = typeof date === "string" ? new Date(date) : date
+    if (!(parsedDate instanceof Date) || Number.isNaN(parsedDate.getTime())) {
+        throw new Error("Invalid transaction date")
+    }
     
     return await runTransaction(db, async (firestoreTransaction) => {
-        // Create transaction document
         const txRef = collection(db, "users", userId, "transactions")
         const newTxRef = doc(txRef)
-        
+
+        const fromAccountRef = doc(db, "users", userId, "accounts", fromAccountId)
+        const toAccountRef = doc(db, "users", userId, "accounts", toAccountId)
+
+        const fromAccountDoc = await firestoreTransaction.get(fromAccountRef)
+        const toAccountDoc = await firestoreTransaction.get(toAccountRef)
+
+        if (!fromAccountDoc.exists() || !toAccountDoc.exists()) {
+            throw new Error("One or both accounts do not exist")
+        }
+
         const txData = {
             fromAccountId,
             toAccountId,
             fromAccountName,
             toAccountName,
-            amount: parseFloat(amount),
-            date: typeof date === 'string' ? Timestamp.fromDate(new Date(date)) : Timestamp.fromDate(date),
+            amount: amountValue,
+            date: Timestamp.fromDate(parsedDate),
             description: description || "",
             createdAt: Timestamp.now()
         }
-        
+
         firestoreTransaction.set(newTxRef, txData)
-        
-        // Update account balances
-        const fromAccountRef = doc(db, "users", userId, "accounts", fromAccountId)
-        const toAccountRef = doc(db, "users", userId, "accounts", toAccountId)
-        
-        const fromAccountDoc = await firestoreTransaction.get(fromAccountRef)
-        const toAccountDoc = await firestoreTransaction.get(toAccountRef)
-        
-        if (!fromAccountDoc.exists() || !toAccountDoc.exists()) {
-            throw new Error("One or both accounts do not exist")
-        }
-        
+
         const fromBalance = fromAccountDoc.data().balance || 0
         const toBalance = toAccountDoc.data().balance || 0
-        const amountValue = parseFloat(amount)
+
+        const fromDelta = -amountValue
+        const toDelta = amountValue
+
+        if (fromAccountId === toAccountId) {
+            return newTxRef.id
+        }
         
         firestoreTransaction.update(fromAccountRef, {
-            balance: fromBalance - amountValue,
+            balance: fromBalance + fromDelta,
             updatedAt: Timestamp.now()
         })
         
         firestoreTransaction.update(toAccountRef, {
-            balance: toBalance + amountValue,
+            balance: toBalance + toDelta,
             updatedAt: Timestamp.now()
         })
         
@@ -277,85 +295,64 @@ export async function updateTransaction(userId, transactionId, updates) {
         }
         
         const oldTx = txDoc.data()
-        const oldAmount = oldTx.amount
-        const newAmount = updates.amount !== undefined ? parseFloat(updates.amount) : oldAmount
-        
-        // Determine which accounts are involved (old and new)
+        const oldAmount = Number(oldTx.amount)
+        const newAmount = updates.amount !== undefined ? Number(updates.amount) : oldAmount
+
+        if (!Number.isFinite(oldAmount) || !Number.isFinite(newAmount)) {
+            throw new Error("Invalid transaction amount")
+        }
+
         const oldFromId = oldTx.fromAccountId
         const oldToId = oldTx.toAccountId
         const newFromId = updates.fromAccountId || oldFromId
         const newToId = updates.toAccountId || oldToId
-        
-        // Revert old transaction impact
-        const oldFromRef = doc(db, "users", userId, "accounts", oldFromId)
-        const oldToRef = doc(db, "users", userId, "accounts", oldToId)
-        
-        const oldFromDoc = await firestoreTransaction.get(oldFromRef)
-        const oldToDoc = await firestoreTransaction.get(oldToRef)
-        
-        if (!oldFromDoc.exists() || !oldToDoc.exists()) {
-            throw new Error("Original accounts do not exist")
+
+        if (!oldFromId || !oldToId || !newFromId || !newToId) {
+            throw new Error("Transaction accounts are invalid")
         }
-        
-        let oldFromBalance = oldFromDoc.data().balance || 0
-        let oldToBalance = oldToDoc.data().balance || 0
-        
-        // Revert the old transaction
-        oldFromBalance += oldAmount
-        oldToBalance -= oldAmount
-        
-        // Apply new transaction
-        if (newFromId === oldFromId) {
-            oldFromBalance -= newAmount
-        } else {
-            // Different from account
-            const newFromRef = doc(db, "users", userId, "accounts", newFromId)
-            const newFromDoc = await firestoreTransaction.get(newFromRef)
-            if (!newFromDoc.exists()) {
-                throw new Error("New from account does not exist")
+
+        const accountRefs = {
+            [oldFromId]: doc(db, "users", userId, "accounts", oldFromId),
+            [oldToId]: doc(db, "users", userId, "accounts", oldToId),
+            [newFromId]: doc(db, "users", userId, "accounts", newFromId),
+            [newToId]: doc(db, "users", userId, "accounts", newToId)
+        }
+
+        const accountDocs = {}
+        for (const [accountId, accountRef] of Object.entries(accountRefs)) {
+            const accountDoc = await firestoreTransaction.get(accountRef)
+            if (!accountDoc.exists()) {
+                throw new Error("One or more accounts do not exist")
             }
-            const newFromBalance = (newFromDoc.data().balance || 0) - newAmount
-            firestoreTransaction.update(newFromRef, {
-                balance: newFromBalance,
+
+            accountDocs[accountId] = accountDoc
+        }
+
+        const balanceDeltas = {}
+        balanceDeltas[oldFromId] = (balanceDeltas[oldFromId] || 0) + oldAmount
+        balanceDeltas[oldToId] = (balanceDeltas[oldToId] || 0) - oldAmount
+        balanceDeltas[newFromId] = (balanceDeltas[newFromId] || 0) - newAmount
+        balanceDeltas[newToId] = (balanceDeltas[newToId] || 0) + newAmount
+
+        for (const [accountId, delta] of Object.entries(balanceDeltas)) {
+            if (!delta) {
+                continue
+            }
+
+            const currentBalance = accountDocs[accountId].data().balance || 0
+            firestoreTransaction.update(accountRefs[accountId], {
+                balance: currentBalance + delta,
                 updatedAt: Timestamp.now()
             })
         }
-        
-        if (newToId === oldToId) {
-            oldToBalance += newAmount
-        } else {
-            // Different to account
-            const newToRef = doc(db, "users", userId, "accounts", newToId)
-            const newToDoc = await firestoreTransaction.get(newToRef)
-            if (!newToDoc.exists()) {
-                throw new Error("New to account does not exist")
-            }
-            const newToBalance = (newToDoc.data().balance || 0) + newAmount
-            firestoreTransaction.update(newToRef, {
-                balance: newToBalance,
-                updatedAt: Timestamp.now()
-            })
-        }
-        
-        // Update original accounts if they're still involved
-        firestoreTransaction.update(oldFromRef, {
-            balance: oldFromBalance,
-            updatedAt: Timestamp.now()
-        })
-        
-        firestoreTransaction.update(oldToRef, {
-            balance: oldToBalance,
-            updatedAt: Timestamp.now()
-        })
-        
-        // Update transaction
+
         const txUpdates = {
             ...updates,
             amount: newAmount
         }
         
         if (updates.date) {
-            txUpdates.date = typeof updates.date === 'string' 
+            txUpdates.date = typeof updates.date === "string" 
                 ? Timestamp.fromDate(new Date(updates.date)) 
                 : Timestamp.fromDate(updates.date)
         }

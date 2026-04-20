@@ -30,6 +30,8 @@
     let transactionError = ""
     let lastTransactionPayload = null
     let backgroundLoadingTransactions = false
+    const maxTransactionRetryAttempts = 3
+    const transactionRetryDelayMs = 800
 
     function normalizeAccounts(accountsData) {
         if (!accountsData) {
@@ -159,6 +161,12 @@
             }
 
             return toTimestamp(b.createdAt) - toTimestamp(a.createdAt)
+        })
+    }
+
+    function waitForRetry(delayMs) {
+        return new Promise((resolve) => {
+            setTimeout(resolve, delayMs)
         })
     }
 
@@ -418,43 +426,65 @@
         transactionError = ""
 
         try {
-            const transactionId = await addTransactionRecord(userId, {
-                fromAccountId,
-                toAccountId,
-                fromAccountName: from,
-                toAccountName: to,
-                amount: parsedAmount,
-                date,
-                description
-            })
+            let retryAttempt = 0
 
-            updateAuthData((data) => {
-                const nextAccounts = normalizeAccounts(data.accounts)
-                nextAccounts[from] = toNumber(nextAccounts[from]) - parsedAmount
-                nextAccounts[to] = toNumber(nextAccounts[to]) + parsedAmount
-                data.accounts = nextAccounts
-
-                const nextTransactions = normalizeTransactions(data.transactions || [])
-                nextTransactions.push(
-                    normalizeTransaction({
-                        id: transactionId || "",
-                        from,
-                        to,
+            while (retryAttempt <= maxTransactionRetryAttempts) {
+                try {
+                    const transactionId = await addTransactionRecord(userId, {
+                        fromAccountId,
+                        toAccountId,
+                        fromAccountName: from,
+                        toAccountName: to,
                         amount: parsedAmount,
                         date,
-                        description,
-                        createdAt: new Date().toISOString()
+                        description
                     })
-                )
 
-                data.transactions = nextTransactions
-            })
+                    updateAuthData((data) => {
+                        const nextAccounts = normalizeAccounts(data.accounts)
+                        nextAccounts[from] = toNumber(nextAccounts[from]) - parsedAmount
+                        nextAccounts[to] = toNumber(nextAccounts[to]) + parsedAmount
+                        data.accounts = nextAccounts
 
-            transactionStatus = "Transaction added"
-            return true
-        } catch (error) {
-            console.error(error)
-            transactionError = "Failed to add transaction. Please retry."
+                        const nextTransactions = normalizeTransactions(data.transactions || [])
+                        nextTransactions.push(
+                            normalizeTransaction({
+                                id: transactionId || "",
+                                from,
+                                to,
+                                amount: parsedAmount,
+                                date,
+                                description,
+                                createdAt: new Date().toISOString()
+                            })
+                        )
+
+                        data.transactions = nextTransactions
+                    })
+
+                    transactionStatus = retryAttempt > 0
+                        ? `Transaction added after retry ${retryAttempt}`
+                        : "Transaction added"
+                    transactionError = ""
+                    return true
+                } catch (error) {
+                    console.error(error)
+
+                    if (retryAttempt >= maxTransactionRetryAttempts) {
+                        transactionStatus = ""
+                        transactionError = `Failed after ${maxTransactionRetryAttempts} retries. Please try again.`
+                        return false
+                    }
+
+                    retryAttempt += 1
+                    transactionStatus = `Retrying transaction (${retryAttempt}/${maxTransactionRetryAttempts})...`
+                    transactionError = ""
+                    await waitForRetry(transactionRetryDelayMs)
+                }
+            }
+
+            transactionStatus = ""
+            transactionError = `Failed after ${maxTransactionRetryAttempts} retries. Please try again.`
             return false
         } finally {
             transactionSubmitting = false
