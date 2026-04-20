@@ -1,44 +1,44 @@
 <script>
-    import { authHandlers } from "../store/store";
-    const envPassword = import.meta.env.VITE_PASSWORD;
+    import { authHandlers } from "../store/store.js"
+    const envPassword = import.meta.env.VITE_PASSWORD
 
-    let email = "";
-    let password = "";
-    let confirmPass = "";
-    let error = false;
-    let register = false;
-    let authenticating = false;
+    let email = ""
+    let password = ""
+    let confirmPass = ""
+    let error = false
+    let register = false
+    let authenticating = false
 
     async function handleAuthenticate() {
         if (authenticating) {
-            return;
+            return
         }
         if (!email || !password || (register && !confirmPass)) {
-            error = true;
-            return;
+            error = true
+            return
         }
-        authenticating = true;
+        authenticating = true
 
         try {
             if (!register) {
-                await authHandlers.login(email, password);
+                await authHandlers.login(email, password)
             } else {
-                await authHandlers.signup(email, password);
+                await authHandlers.signup(email, password)
             }
         } catch (err) {
-            console.log("There was an auth error", err);
-            error = true;
-            authenticating = false;
+            console.log("There was an auth error", err)
+            error = true
+            authenticating = false
         }
     }
 
     function handleRegister() {
-        let input_password = prompt("Enter Password");
+        let input_password = prompt("Enter Password")
             if (input_password !== envPassword) {
-                console.log("Incorrect Password");
-                return;
+                console.log("Incorrect Password")
+                return
             }
-        register = !register;
+        register = !register
     }
 </script>
 
