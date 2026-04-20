@@ -1,45 +1,56 @@
 # Family Bookkeeping
 
-This is a family bookkeeping application built with Svelte and Firebase.
+A small family bookkeeping Progressive Web App built with SvelteKit and Firebase.
 
-## 📱 Progressive Web App (PWA)
+## Stack
 
-This app is installable as a Progressive Web App on iPhone, Android, and desktop devices. See [PWA_README.md](PWA_README.md) for detailed information about PWA features and installation instructions.
+- SvelteKit 2 + Svelte 4
+- Firebase Authentication + Firestore
+- Vite 5
+- Node.js 22+
 
-## Installation 
+## Data Model
 
-This project requires Node.js version 22 or later.
+The app now uses the Firestore subcollection structure as the only runtime model:
 
-Clone the repository and install dependencies with npm:
-
-```bash 
-  git clone https://github.com/NoEdgeAtLife/family-bookkeeping.git
-  cd family-bookkeeping
-  npm install
+```
+users/{userId}/accounts/{accountId}
+users/{userId}/transactions/{transactionId}
 ```
 
-## Developing
+Runtime store shape in the app:
 
-Start a development server:
+- `data.accounts` -> `{ [accountName]: balance }`
+- `data.accountIds` -> `{ [accountName]: accountId }`
+- `data.transactions` -> `[{ id, from, to, amount, date, description, createdAt }]`
+
+## Installation
+
+```bash
+git clone https://github.com/NoEdgeAtLife/family-bookkeeping.git
+cd family-bookkeeping
+npm install
+```
+
+## Development
 
 ```bash
 npm run dev
-# or start the server and open the app in a new browser tab
 npm run dev -- --open
 ```
 
-## Building
-To create a production version of your app:
+## Build
+
 ```bash
 npm run build
+npm run preview
 ```
-
-You can preview the production build with npm run preview.
 
 ## Firebase Configuration
-This project uses Firebase for authentication and data storage. You need to set up your Firebase project and add the configuration to a .env file in the project root:
 
-```
+Create a `.env` file in the project root:
+
+```bash
 VITE_APIKEY=yourapikey
 VITE_AUTH_DOMAIN=yourauthdomain
 VITE_PROJECT_ID=yourprojectid
@@ -47,7 +58,7 @@ VITE_STORAGE_BUCKET=yourstoragebucket
 VITE_MESSAGING_SENDER_ID=yourmessagingsenderid
 VITE_APP_ID=yourappid
 ```
-Replace yourapikey, yourauthdomain, etc. with your actual Firebase configuration values.
 
 ## License
+
 MIT

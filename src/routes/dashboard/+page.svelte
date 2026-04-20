@@ -1,265 +1,578 @@
 <script>
-    import { db } from "../../lib/firebase/firebase";
-    import { authHandlers, authStore } from "../../store/store";
-    import { getDoc, doc, setDoc } from "firebase/firestore";
-    import AccountsList from "../../components/AccountsList.svelte";
-    import TransactionsList from "../../components/TransactionsList.svelte";
-    import Calculator from "../../components/Calculator.svelte";
+    import AccountsList from "../../components/AccountsList.svelte"
+    import TransactionsList from "../../components/TransactionsList.svelte"
+    import Calculator from "../../components/Calculator.svelte"
+    import {
+        addAccount as addAccountRecord,
+        addTransaction as addTransactionRecord,
+        deleteAccount as deleteAccountRecord,
+        deleteTransaction as deleteTransactionRecord,
+        getAccounts as getAccountsList,
+        renameAccount as renameAccountRecord,
+        updateAccount as updateAccountRecord,
+        updateTransaction as updateTransactionRecord
+    } from "../../lib/firebase/queries.js"
+    import { authHandlers, authStore } from "../../store/store.js"
 
-    let accounts = [];
-    let accountName = "";
-    let amount = "";
-    let txs = [];
-    const normalizeAccounts = (accountsData) => {
-      if (!accountsData) {
-        return {};
-      }
-      if (Array.isArray(accountsData)) {
-        return accountsData.reduce((acc, entry) => {
-          if (Array.isArray(entry) && entry.length >= 2) {
-            acc[entry[0]] = entry[1];
-          }
-          return acc;
-        }, {});
-      }
-      if (typeof accountsData === "object") {
-        return Object.entries(accountsData).reduce((acc, [key, value]) => {
-          if (!Number.isFinite(Number(key))) {
-            acc[key] = value;
-          }
-          return acc;
-        }, {});
-      }
-      return {};
-    };
-    const sortAccounts = (entries = []) =>
-      entries.slice().sort((a, b) => a[0].localeCompare(b[0]));
-    const sortTransactions = (entries = []) =>
-      entries
-        .slice()
-        .sort((a, b) => {
-          const dateDiff = new Date(b[1].date) - new Date(a[1].date);
-          if (dateDiff !== 0) {
-            return dateDiff;
-          }
-          const aCreated = a[1].createdAt ? new Date(a[1].createdAt) : new Date(a[1].date);
-          const bCreated = b[1].createdAt ? new Date(b[1].createdAt) : new Date(b[1].date);
-          return bCreated - aCreated;
-        });
-    authStore.subscribe((curr) => {
-      if (curr.user) {
-        const normalizedAccounts = normalizeAccounts(curr.data.accounts);
-        accounts = sortAccounts(Object.entries(normalizedAccounts));
-        txs = sortTransactions(Object.entries(curr.data.txs));
-      }
-    });
+    let accounts = []
+    let accountName = ""
+    let amount = ""
+    let transactions = []
 
-    let editAccount = async (accountName, nextName, amount) => {
-      const docRef = doc(db, "users", $authStore.user.uid);
-      const docSnap = await getDoc(docRef);
-      let data = docSnap.data();
-      data.accounts = normalizeAccounts(data.accounts);
-      const trimmedName = (nextName || accountName || "").trim();
-      if (!trimmedName) {
-        return;
-      }
-      const amountValue = parseFloat(amount);
-      if (isNaN(amountValue)) {
-        return;
-      }
-      if (trimmedName !== accountName) {
-        delete data.accounts[accountName];
-        if (Array.isArray(data.txs)) {
-          data.txs = data.txs.map((tx) => {
-            const nextTx = { ...tx };
-            if (nextTx.from === accountName) {
-              nextTx.from = trimmedName;
-            }
-            if (nextTx.to === accountName) {
-              nextTx.to = trimmedName;
-            }
-            return nextTx;
-          });
+    let fromAccount = ""
+    let toAccount = ""
+    let transactionAmount = ""
+    let transactionDate = new Date().toISOString().split("T")[0]
+    let transactionDescription = ""
+
+    let transactionSubmitting = false
+    let transactionStatus = ""
+    let transactionError = ""
+    let lastTransactionPayload = null
+    let backgroundLoadingTransactions = false
+
+    function normalizeAccounts(accountsData) {
+        if (!accountsData) {
+            return {}
         }
-      }
-      data.accounts = {
-        ...data.accounts,
-        [trimmedName]: amountValue,
-      };
-      await setDoc(docRef, data);
-      accounts = sortAccounts(Object.entries(data.accounts));
-    };
 
-    let deleteAccount = async (accountName) => {
-        const docRef = doc(db, "users", $authStore.user.uid);
-        const docSnap = await getDoc(docRef);
-        let data = docSnap.data();
-        data.accounts = normalizeAccounts(data.accounts);
-        delete data.accounts[accountName];
-        await setDoc(docRef, data);
-    accounts = sortAccounts(Object.entries(data.accounts));
-    };
+        if (Array.isArray(accountsData)) {
+            return accountsData.reduce((acc, entry) => {
+                if (Array.isArray(entry) && entry.length >= 2) {
+                    acc[entry[0]] = toNumber(entry[1])
+                }
+                return acc
+            }, {})
+        }
+
+        if (typeof accountsData === "object") {
+            return Object.entries(accountsData).reduce((acc, [key, value]) => {
+                if (!Number.isFinite(Number(key))) {
+                    acc[key] = toNumber(value)
+                }
+                return acc
+            }, {})
+        }
+
+        return {}
+    }
+
+    function normalizeAccountIds(accountIdsData) {
+        if (!accountIdsData || typeof accountIdsData !== "object") {
+            return {}
+        }
+
+        return Object.entries(accountIdsData).reduce((acc, [name, id]) => {
+            if (name && typeof id === "string" && id.trim()) {
+                acc[name] = id
+            }
+            return acc
+        }, {})
+    }
+
+    function toAccountsObject(accountList = []) {
+        return accountList.reduce((acc, account) => {
+            if (!account?.name) {
+                return acc
+            }
+
+            acc[account.name] = toNumber(account.balance)
+            return acc
+        }, {})
+    }
+
+    function toAccountIdMap(accountList = []) {
+        return accountList.reduce((acc, account) => {
+            if (account?.name && account?.id) {
+                acc[account.name] = account.id
+            }
+            return acc
+        }, {})
+    }
+
+    function toNumber(value, fallback = 0) {
+        const parsed = Number(value)
+        return Number.isFinite(parsed) ? parsed : fallback
+    }
+
+    function sortAccounts(entries = []) {
+        return entries.slice().sort((a, b) => a[0].localeCompare(b[0]))
+    }
+
+    function normalizeDateString(value) {
+        if (!value) {
+            return ""
+        }
+
+        const parsedDate = new Date(value)
+        if (Number.isNaN(parsedDate.getTime())) {
+            return String(value)
+        }
+
+        return parsedDate.toISOString().split("T")[0]
+    }
+
+    function normalizeTransaction(tx = {}) {
+        return {
+            id: tx.id || "",
+            from: tx.from || tx.fromAccountName || "",
+            to: tx.to || tx.toAccountName || "",
+            amount: toNumber(tx.amount),
+            date: normalizeDateString(tx.date),
+            description: tx.description || "",
+            createdAt: tx.createdAt || tx.date || ""
+        }
+    }
+
+    function normalizeTransactions(transactionsData = []) {
+        if (Array.isArray(transactionsData)) {
+            return transactionsData.map((tx) => normalizeTransaction(tx))
+        }
+
+        if (typeof transactionsData === "object") {
+            return Object.values(transactionsData).map((tx) => {
+                return normalizeTransaction(tx)
+            })
+        }
+
+        return []
+    }
+
+    function toTimestamp(value) {
+        if (!value) {
+            return 0
+        }
+
+        const parsedDate = new Date(value)
+        if (Number.isNaN(parsedDate.getTime())) {
+            return 0
+        }
+
+        return parsedDate.getTime()
+    }
+
+    function sortTransactions(transactionList = []) {
+        return transactionList.slice().sort((a, b) => {
+            const dateDiff = toTimestamp(b.date) - toTimestamp(a.date)
+            if (dateDiff !== 0) {
+                return dateDiff
+            }
+
+            return toTimestamp(b.createdAt) - toTimestamp(a.createdAt)
+        })
+    }
+
+    function getCurrentUserId() {
+        return $authStore?.user?.uid || null
+    }
+
+    function findTransactionById(transactionId, transactionList) {
+        const targetId = String(transactionId || "")
+        if (!targetId) {
+            return null
+        }
+
+        const list = transactionList || normalizedStoreTransactions
+
+        return list.find((transaction) => String(transaction?.id || "") === targetId) || null
+    }
+
+    async function refreshAccountState(userId) {
+        const latestAccounts = await getAccountsList(userId)
+        const nextAccounts = toAccountsObject(latestAccounts)
+        const nextAccountIds = toAccountIdMap(latestAccounts)
+
+        authStore.update((curr) => {
+            return {
+                ...curr,
+                data: {
+                    ...(curr?.data || {}),
+                    accounts: nextAccounts,
+                    accountIds: nextAccountIds
+                }
+            }
+        })
+
+        return nextAccountIds
+    }
+
+    async function resolveAccountIds(userId) {
+        const accountIds = normalizeAccountIds($authStore?.data?.accountIds || {})
+        if (Object.keys(accountIds).length > 0) {
+            return accountIds
+        }
+
+        return await refreshAccountState(userId)
+    }
+
+    function updateAuthData(mutator) {
+        authStore.update((curr) => {
+            const currentData = curr?.data || {}
+            const nextData = {
+                ...currentData,
+                accounts: normalizeAccounts(currentData.accounts),
+                accountIds: normalizeAccountIds(currentData.accountIds),
+                transactions: normalizeTransactions(currentData.transactions || [])
+            }
+
+            mutator(nextData)
+
+            return {
+                ...curr,
+                data: nextData
+            }
+        })
+    }
+
+    function dismissTransactionStatus() {
+        transactionStatus = ""
+        transactionError = ""
+    }
+
+    $: normalizedStoreAccounts = normalizeAccounts($authStore?.data?.accounts)
+    $: normalizedStoreAccountIds = normalizeAccountIds($authStore?.data?.accountIds)
+    $: normalizedStoreTransactions = normalizeTransactions($authStore?.data?.transactions || [])
+    $: accounts = sortAccounts(Object.entries(normalizedStoreAccounts))
+    $: transactions = sortTransactions(normalizedStoreTransactions)
+    $: backgroundLoadingTransactions = Boolean($authStore?.data?.transactionsMeta?.backgroundLoading)
+
+    let editAccount = async (currentName, nextName, nextAmount) => {
+        const userId = getCurrentUserId()
+        if (!userId) {
+            throw new Error("Missing user")
+        }
+
+        const trimmedName = (nextName || currentName || "").trim()
+        const parsedAmount = Number(nextAmount)
+        if (!trimmedName || !Number.isFinite(parsedAmount)) {
+            throw new Error("Invalid account payload")
+        }
+
+        if (Object.prototype.hasOwnProperty.call(normalizedStoreAccounts, trimmedName) && trimmedName !== currentName) {
+            throw new Error("Account already exists")
+        }
+
+        let accountId = normalizedStoreAccountIds[currentName]
+        if (!accountId) {
+            const refreshedAccountIds = await refreshAccountState(userId)
+            accountId = refreshedAccountIds[currentName]
+        }
+
+        if (!accountId) {
+            throw new Error("Account not found")
+        }
+
+        const isRename = trimmedName !== currentName
+        if (isRename) {
+            await renameAccountRecord(userId, accountId, trimmedName)
+        }
+        await updateAccountRecord(userId, accountId, { balance: parsedAmount })
+
+        updateAuthData((data) => {
+            const nextAccounts = normalizeAccounts(data.accounts)
+            const nextAccountIds = normalizeAccountIds(data.accountIds)
+
+            if (isRename) {
+                delete nextAccounts[currentName]
+                delete nextAccountIds[currentName]
+            }
+
+            nextAccounts[trimmedName] = parsedAmount
+            nextAccountIds[trimmedName] = accountId
+            data.accounts = nextAccounts
+            data.accountIds = nextAccountIds
+
+            if (isRename) {
+                data.transactions = normalizeTransactions(data.transactions).map((tx) => {
+                    const normalizedTx = normalizeTransaction(tx)
+                    if (normalizedTx.from === currentName) {
+                        normalizedTx.from = trimmedName
+                    }
+                    if (normalizedTx.to === currentName) {
+                        normalizedTx.to = trimmedName
+                    }
+                    return normalizedTx
+                })
+            }
+        })
+
+        if (fromAccount === currentName) {
+            fromAccount = trimmedName
+        }
+
+        if (toAccount === currentName) {
+            toAccount = trimmedName
+        }
+    }
+
+    let deleteAccount = async (currentName) => {
+        const userId = getCurrentUserId()
+        if (!userId) {
+            throw new Error("Missing user")
+        }
+
+        let accountId = normalizedStoreAccountIds[currentName]
+        if (!accountId) {
+            const refreshedAccountIds = await refreshAccountState(userId)
+            accountId = refreshedAccountIds[currentName]
+        }
+
+        if (!accountId) {
+            throw new Error("Account not found")
+        }
+
+        await deleteAccountRecord(userId, accountId)
+
+        updateAuthData((data) => {
+            const nextAccounts = normalizeAccounts(data.accounts)
+            const nextAccountIds = normalizeAccountIds(data.accountIds)
+            delete nextAccounts[currentName]
+            delete nextAccountIds[currentName]
+            data.accounts = nextAccounts
+            data.accountIds = nextAccountIds
+        })
+
+        if (fromAccount === currentName) {
+            fromAccount = ""
+        }
+
+        if (toAccount === currentName) {
+            toAccount = ""
+        }
+    }
+
     let addAccount = async () => {
-        const docRef = doc(db, "users", $authStore.user.uid);
-        const docSnap = await getDoc(docRef);
-        let data = docSnap.data();
-    data.accounts = normalizeAccounts(data.accounts);
-        data.accounts = {
-        ...data.accounts,
-        [accountName]: amount,
-        };
-        await setDoc(docRef, data);
-    accounts = sortAccounts(Object.entries(data.accounts));
-    };
+        const userId = getCurrentUserId()
+        if (!userId) {
+            return
+        }
 
-    let fromAccount = "";
-    let toAccount = "";
-    let txAmount = "";
-    let txDate = new Date().toISOString().split('T')[0];
-    let txDescription = "";
-  let txSubmitting = false;
-  let txStatus = "";
-  let txError = "";
-  let lastTxPayload = null;
-    let dismissTxStatus = () => {
-      txStatus = "";
-      txError = "";
-    };
+        const trimmedName = (accountName || "").trim()
+        const parsedAmount = Number(amount)
+
+        if (!trimmedName || !Number.isFinite(parsedAmount)) {
+            return
+        }
+
+        if (Object.prototype.hasOwnProperty.call(normalizedStoreAccounts, trimmedName)) {
+            return
+        }
+
+        const newAccountId = await addAccountRecord(userId, trimmedName, parsedAmount)
+
+        updateAuthData((data) => {
+            const nextAccounts = normalizeAccounts(data.accounts)
+            const nextAccountIds = normalizeAccountIds(data.accountIds)
+            nextAccounts[trimmedName] = parsedAmount
+            nextAccountIds[trimmedName] = newAccountId
+            data.accounts = nextAccounts
+            data.accountIds = nextAccountIds
+        })
+
+        accountName = ""
+        amount = ""
+    }
 
     let submitTransaction = async (payload) => {
-      const { from, to, amount, date, description } = payload;
-      // Check if amounts are valid
-      if (isNaN(amount) || isNaN(parseFloat(amount))) {
-        txError = "Invalid amount";
-        return;
-      }
-      if (!from || !to) {
-        txError = "Please select both accounts";
-        return;
-      }
+        const userId = getCurrentUserId()
+        if (!userId) {
+            transactionError = "Please log in again"
+            return false
+        }
 
-      txSubmitting = true;
-      txStatus = "Adding transaction...";
-      txError = "";
+        const from = (payload.from || "").trim()
+        const to = (payload.to || "").trim()
+        const parsedAmount = Number(payload.amount)
+        const date = payload.date || new Date().toISOString().split("T")[0]
+        const description = payload.description || ""
 
-      const docRef = doc(db, "users", $authStore.user.uid);
-      const docSnap = await getDoc(docRef);
-      let data = docSnap.data();
-      data.accounts = normalizeAccounts(data.accounts);
-      data.txs.push({
-        from,
-        to,
-        amount,
-        date,
-        description,
-        createdAt: new Date().toISOString(),
-      });
-      // Update the corresponding accounts
-      const amountValue = parseFloat(amount);
-      data.accounts[from] -= amountValue;
-      data.accounts[to] += amountValue;
+        if (!from || !to) {
+            transactionError = "Please select both accounts"
+            return false
+        }
 
-      await setDoc(docRef, data);
-  txs = sortTransactions(Object.entries(data.txs));
-      accounts = sortAccounts(Object.entries(data.accounts));
-      txStatus = "Transaction added";
-    };
+        if (!Number.isFinite(parsedAmount)) {
+            transactionError = "Invalid amount"
+            return false
+        }
+
+        const accountIds = await resolveAccountIds(userId)
+        const fromAccountId = accountIds[from]
+        const toAccountId = accountIds[to]
+
+        if (!fromAccountId || !toAccountId) {
+            transactionError = "Could not resolve selected accounts. Please retry."
+            return false
+        }
+
+        transactionSubmitting = true
+        transactionStatus = "Adding transaction..."
+        transactionError = ""
+
+        try {
+            const transactionId = await addTransactionRecord(userId, {
+                fromAccountId,
+                toAccountId,
+                fromAccountName: from,
+                toAccountName: to,
+                amount: parsedAmount,
+                date,
+                description
+            })
+
+            updateAuthData((data) => {
+                const nextAccounts = normalizeAccounts(data.accounts)
+                nextAccounts[from] = toNumber(nextAccounts[from]) - parsedAmount
+                nextAccounts[to] = toNumber(nextAccounts[to]) + parsedAmount
+                data.accounts = nextAccounts
+
+                const nextTransactions = normalizeTransactions(data.transactions || [])
+                nextTransactions.push(
+                    normalizeTransaction({
+                        id: transactionId || "",
+                        from,
+                        to,
+                        amount: parsedAmount,
+                        date,
+                        description,
+                        createdAt: new Date().toISOString()
+                    })
+                )
+
+                data.transactions = nextTransactions
+            })
+
+            transactionStatus = "Transaction added"
+            return true
+        } catch (error) {
+            console.error(error)
+            transactionError = "Failed to add transaction. Please retry."
+            return false
+        } finally {
+            transactionSubmitting = false
+        }
+    }
 
     let addTransaction = async () => {
-      const payload = {
-        from: fromAccount,
-        to: toAccount,
-        amount: txAmount,
-        date: txDate,
-        description: txDescription,
-      };
-      lastTxPayload = payload;
-      try {
-        await submitTransaction(payload);
-        // Clear the input fields after successful add
-        txAmount = "";
-        txDescription = "";
-      } catch (error) {
-        console.error(error);
-        txError = "Failed to add transaction. Please retry.";
-      } finally {
-        txSubmitting = false;
-      }
-    };
+        const payload = {
+            from: fromAccount,
+            to: toAccount,
+            amount: transactionAmount,
+            date: transactionDate,
+            description: transactionDescription
+        }
+
+        lastTransactionPayload = payload
+        const successful = await submitTransaction(payload)
+        if (successful) {
+            transactionAmount = ""
+            transactionDescription = ""
+        }
+    }
 
     let retryAddTransaction = async () => {
-      if (!lastTxPayload) {
-        return;
-      }
-      try {
-        await submitTransaction(lastTxPayload);
-      } catch (error) {
-        console.error(error);
-        txError = "Retry failed. Please try again.";
-      } finally {
-        txSubmitting = false;
-      }
-    };
-
-    let editTransaction = async (index, updatedTx) => {
-        const docRef = doc(db, "users", $authStore.user.uid);
-        const docSnap = await getDoc(docRef);
-        let data = docSnap.data();
-        data.accounts = normalizeAccounts(data.accounts);
-        const currentTx = data.txs[index];
-        if (!currentTx) {
-          return;
+        if (!lastTransactionPayload) {
+            return
         }
-        const nextAmount = parseFloat(updatedTx.amount);
-        if (isNaN(nextAmount)) {
-          return;
+
+        await submitTransaction(lastTransactionPayload)
+    }
+
+    let editTransaction = async (transactionId, updatedTx) => {
+        const userId = getCurrentUserId()
+        if (!userId) {
+            throw new Error("Missing user")
         }
-        const prevAmount = parseFloat(currentTx.amount);
-        if (isNaN(prevAmount)) {
-          return;
+
+        const currentTransaction = findTransactionById(transactionId)
+        if (!currentTransaction) {
+            throw new Error("Transaction not found")
         }
-        const nextFrom = updatedTx.from || currentTx.from;
-        const nextTo = updatedTx.to || currentTx.to;
 
-        // Roll back previous transaction impact
-        data.accounts[currentTx.from] += prevAmount;
-        data.accounts[currentTx.to] -= prevAmount;
+        const nextFrom = (updatedTx.from || currentTransaction.from || "").trim()
+        const nextTo = (updatedTx.to || currentTransaction.to || "").trim()
+        const nextAmount = Number(updatedTx.amount)
+        const nextDate = updatedTx.date || currentTransaction.date
+        const nextDescription = updatedTx.description || ""
 
-        // Apply updated transaction impact
-        data.accounts[nextFrom] -= nextAmount;
-        data.accounts[nextTo] += nextAmount;
+        if (!nextFrom || !nextTo || !Number.isFinite(nextAmount)) {
+            throw new Error("Invalid transaction payload")
+        }
 
-        data.txs[index] = {
-          ...currentTx,
-          ...updatedTx,
-          from: nextFrom,
-          to: nextTo,
-          amount: nextAmount,
-          createdAt: currentTx.createdAt || updatedTx.createdAt || currentTx.date,
-        };
-        await setDoc(docRef, data);
-        txs = sortTransactions(Object.entries(data.txs));
-    accounts = sortAccounts(Object.entries(data.accounts));
-    };
+        const accountIds = await resolveAccountIds(userId)
+        const fromAccountId = accountIds[nextFrom]
+        const toAccountId = accountIds[nextTo]
 
-    let deleteTransaction = async (index, tx) => {
-        const docRef = doc(db, "users", $authStore.user.uid);
-        const docSnap = await getDoc(docRef);
-        let data = docSnap.data();
-  data.accounts = normalizeAccounts(data.accounts);
-        txAmount = tx.amount;
-        fromAccount = tx.from;
-        toAccount = tx.to;
-        data.txs.splice(index, 1);
-  txs = sortTransactions(Object.entries(data.txs));
+        if (!fromAccountId || !toAccountId) {
+            throw new Error("Could not resolve selected accounts")
+        }
 
-        // Update the corresponding accounts
-        data.accounts[fromAccount] += txAmount;
-        data.accounts[toAccount] -= txAmount;
+        await updateTransactionRecord(userId, currentTransaction.id, {
+            fromAccountId,
+            toAccountId,
+            fromAccountName: nextFrom,
+            toAccountName: nextTo,
+            amount: nextAmount,
+            date: nextDate,
+            description: nextDescription
+        })
 
-        await setDoc(docRef, data);
-    accounts = sortAccounts(Object.entries(data.accounts));
-    };
+        updateAuthData((data) => {
+            const nextAccounts = normalizeAccounts(data.accounts)
+            const prevAmount = toNumber(currentTransaction.amount)
+
+            nextAccounts[currentTransaction.from] = toNumber(nextAccounts[currentTransaction.from]) + prevAmount
+            nextAccounts[currentTransaction.to] = toNumber(nextAccounts[currentTransaction.to]) - prevAmount
+            nextAccounts[nextFrom] = toNumber(nextAccounts[nextFrom]) - nextAmount
+            nextAccounts[nextTo] = toNumber(nextAccounts[nextTo]) + nextAmount
+            data.accounts = nextAccounts
+
+            const nextTransactions = normalizeTransactions(data.transactions || [])
+            data.transactions = nextTransactions.map((transaction) => {
+                if (transaction.id !== currentTransaction.id) {
+                    return transaction
+                }
+
+                return normalizeTransaction({
+                    ...transaction,
+                    from: nextFrom,
+                    to: nextTo,
+                    amount: nextAmount,
+                    date: nextDate,
+                    description: nextDescription,
+                    createdAt: transaction.createdAt || currentTransaction.createdAt || nextDate
+                })
+            })
+        })
+    }
+
+    let deleteTransaction = async (transactionId, transactionData) => {
+        const userId = getCurrentUserId()
+        if (!userId) {
+            throw new Error("Missing user")
+        }
+
+        const currentTransaction = findTransactionById(transactionId) || normalizeTransaction(transactionData)
+        if (!currentTransaction.id) {
+            throw new Error("Transaction id missing")
+        }
+
+        await deleteTransactionRecord(userId, currentTransaction.id)
+
+        updateAuthData((data) => {
+            const nextAccounts = normalizeAccounts(data.accounts)
+            const amountValue = toNumber(currentTransaction.amount)
+
+            nextAccounts[currentTransaction.from] = toNumber(nextAccounts[currentTransaction.from]) + amountValue
+            nextAccounts[currentTransaction.to] = toNumber(nextAccounts[currentTransaction.to]) - amountValue
+            data.accounts = nextAccounts
+
+            const nextTransactions = normalizeTransactions(data.transactions || [])
+            data.transactions = nextTransactions.filter((transaction) => {
+                return transaction.id !== currentTransaction.id
+            })
+        })
+    }
 </script>
 
 {#if !$authStore.loading}
@@ -274,7 +587,7 @@
   <div class="formContainer">
     <input type="text" bind:value={accountName} placeholder="Account Name" />
     <input type="number" bind:value={amount} placeholder="$" />
-    <button on:click={addAccount}>Add Account</button>
+    <button on:click={addAccount} disabled={!accountName.trim() || !Number.isFinite(Number(amount))}>Add Account</button>
   </div>
 
   <main>
@@ -301,33 +614,36 @@
         </select>
       </div>
       <div class="tf-row tf-amount-desc">
-        <input type="number" bind:value={txAmount} placeholder="$" />
-        <input type="text" bind:value={txDescription} placeholder="Description" />
+        <input type="number" bind:value={transactionAmount} placeholder="$" />
+        <input type="text" bind:value={transactionDescription} placeholder="Description" />
       </div>
       <div class="tf-row tf-date-add">
-        <input type="date" bind:value={txDate} placeholder={txDate} />
-        <button class="icon add" on:click={addTransaction} disabled={txSubmitting} aria-label="Add transaction">
+        <input type="date" bind:value={transactionDate} placeholder={transactionDate} />
+        <button class="icon add" on:click={addTransaction} disabled={transactionSubmitting || !fromAccount || !toAccount || !Number.isFinite(Number(transactionAmount))} aria-label="Add transaction">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M11 11V5h2v6h6v2h-6v6h-2v-6H5v-2h6z" fill="currentColor" />
           </svg>
         </button>
       </div>
     </div>
-    {#if txStatus || txError}
+    {#if transactionStatus || transactionError}
       <div class="txStatus" aria-live="polite">
-        {#if txStatus}
-          <span class="success">{txStatus}</span>
+        {#if transactionStatus}
+          <span class="success">{transactionStatus}</span>
         {/if}
-        {#if txError}
-          <span class="error">{txError}</span>
-          <button class="retry" on:click={retryAddTransaction} disabled={txSubmitting}>Retry</button>
+        {#if transactionError}
+          <span class="error">{transactionError}</span>
+          <button class="retry" on:click={retryAddTransaction} disabled={transactionSubmitting}>Retry</button>
         {/if}
-        <button class="dismiss" on:click={dismissTxStatus} aria-label="Dismiss">✕</button>
+        <button class="dismiss" on:click={dismissTransactionStatus} aria-label="Dismiss">✕</button>
       </div>
     {/if}
     <div class="transactionList">
-      {#if txs.length > 0}
-  <TransactionsList {txs} {accounts} {editTransaction} {deleteTransaction} />
+      {#if backgroundLoadingTransactions}
+        <p class="loadingHint" aria-live="polite">Loading more transactions in background...</p>
+      {/if}
+      {#if transactions.length > 0}
+  <TransactionsList {transactions} {accounts} {editTransaction} {deleteTransaction} />
       {:else}
         <p>No transactions found</p>
       {/if}
@@ -419,6 +735,11 @@
   .transactionContainer h2 {
     font-size: 1.25rem;
     margin-bottom: 10px;
+  }
+  .loadingHint {
+    margin: 4px 0 8px;
+    font-size: 0.9rem;
+    color: #0f5f97;
   }
   .transactionForm {
     display: flex;

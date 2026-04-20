@@ -1,58 +1,259 @@
 <script>
-    import { onMount } from "svelte";
-    import { auth, db } from "../lib/firebase/firebase";
-    import { getDoc, doc, setDoc } from "firebase/firestore";
-    import { authStore } from "../store/store";
-    const nonAuthRoutes = ["/", "product"];
+    import { onMount } from "svelte"
+    import { doc, getDoc, setDoc } from "firebase/firestore"
+    import { auth, db } from "../lib/firebase/firebase.js"
+    import { getAccounts, getTransactions } from "../lib/firebase/queries.js"
+    import { authStore } from "../store/store.js"
+
+    const nonAuthRoutes = ["/", "/product"]
+    const initialTransactionsPageSize = 50
+    const backgroundTransactionsPageSize = 250
+
+    let activeLoadId = 0
+
+    function toAccountsObject(accounts = []) {
+        return accounts.reduce((acc, account) => {
+            if (!account?.name) {
+                return acc
+            }
+
+            const parsedBalance = Number(account.balance)
+            acc[account.name] = Number.isFinite(parsedBalance) ? parsedBalance : 0
+            return acc
+        }, {})
+    }
+
+    function toAccountIdMap(accounts = []) {
+        return accounts.reduce((acc, account) => {
+            if (!account?.name || !account?.id) {
+                return acc
+            }
+
+            acc[account.name] = account.id
+            return acc
+        }, {})
+    }
+
+    function normalizeDateString(value) {
+        if (!value) {
+            return ""
+        }
+
+        const parsedDate = new Date(value)
+        if (Number.isNaN(parsedDate.getTime())) {
+            return String(value)
+        }
+
+        return parsedDate.toISOString().split("T")[0]
+    }
+
+    function normalizeTransaction(tx = {}) {
+        const parsedAmount = Number(tx.amount)
+
+        return {
+            id: tx.id || "",
+            from: tx.fromAccountName || tx.from || "",
+            to: tx.toAccountName || tx.to || "",
+            amount: Number.isFinite(parsedAmount) ? parsedAmount : 0,
+            date: normalizeDateString(tx.date),
+            description: tx.description || "",
+            createdAt: tx.createdAt || tx.date || ""
+        }
+    }
+
+    function normalizeTransactions(transactions = []) {
+        return transactions.map((tx) => normalizeTransaction(tx))
+    }
+
+    async function hydrateUserData(user, baseData, loadId) {
+        try {
+            const [accounts, firstTransactionsPage] = await Promise.all([
+                getAccounts(user.uid),
+                getTransactions(user.uid, initialTransactionsPageSize)
+            ])
+
+            if (loadId !== activeLoadId) {
+                return
+            }
+
+            let transactions = normalizeTransactions(firstTransactionsPage.transactions)
+
+            authStore.update((curr) => {
+                return {
+                    ...curr,
+                    loading: false,
+                    data: {
+                        ...baseData,
+                        accounts: toAccountsObject(accounts),
+                        accountIds: toAccountIdMap(accounts),
+                        transactions,
+                        transactionsMeta: {
+                            backgroundLoading: firstTransactionsPage.hasMore
+                        }
+                    }
+                }
+            })
+
+            if (!firstTransactionsPage.hasMore) {
+                return
+            }
+
+            let hasMore = firstTransactionsPage.hasMore
+            let lastDoc = firstTransactionsPage.lastDoc
+
+            while (hasMore && loadId === activeLoadId) {
+                const nextPage = await getTransactions(
+                    user.uid,
+                    backgroundTransactionsPageSize,
+                    lastDoc
+                )
+
+                const nextTransactions = normalizeTransactions(nextPage.transactions)
+                transactions = [...transactions, ...nextTransactions]
+                hasMore = nextPage.hasMore
+                lastDoc = nextPage.lastDoc
+
+                authStore.update((curr) => {
+                    if (loadId !== activeLoadId) {
+                        return curr
+                    }
+
+                    return {
+                        ...curr,
+                        data: {
+                            ...curr.data,
+                            transactions,
+                            transactionsMeta: {
+                                ...(curr.data?.transactionsMeta || {}),
+                                backgroundLoading: hasMore
+                            }
+                        }
+                    }
+                })
+            }
+
+            authStore.update((curr) => {
+                if (loadId !== activeLoadId) {
+                    return curr
+                }
+
+                return {
+                    ...curr,
+                    data: {
+                        ...curr.data,
+                        transactionsMeta: {
+                            ...(curr.data?.transactionsMeta || {}),
+                            backgroundLoading: false
+                        }
+                    }
+                }
+            })
+        } catch (error) {
+            console.error("Failed to load user data", error)
+
+            authStore.update((curr) => {
+                if (loadId !== activeLoadId) {
+                    return curr
+                }
+
+                return {
+                    ...curr,
+                    loading: false,
+                    data: {
+                        ...curr.data,
+                        transactionsMeta: {
+                            ...(curr.data?.transactionsMeta || {}),
+                            backgroundLoading: false,
+                            loadError: true
+                        }
+                    }
+                }
+            })
+        }
+    }
 
     onMount(() => {
-        console.log("Mounting");
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
-            const currentPath = window.location.pathname;
+            const currentPath = window.location.pathname
 
             if (!user && !nonAuthRoutes.includes(currentPath)) {
-                window.location.href = "/";
-                return;
+                window.location.href = "/"
+                return
             }
 
             if (user && currentPath === "/") {
-                window.location.href = "/dashboard";
-                return;
+                window.location.href = "/dashboard"
+                return
             }
 
             if (!user) {
-                return;
+                authStore.update((curr) => {
+                    return {
+                        ...curr,
+                        user: null,
+                        data: {},
+                        loading: false
+                    }
+                })
+                return
             }
 
-            let dataToSetToStore;
-            const docRef = doc(db, "users", user.uid);
-            const docSnap = await getDoc(docRef);
-            if (!docSnap.exists()) {
-                console.log("Creating User");
-                const userRef = doc(db, "users", user.uid);
-                dataToSetToStore = {
+            const loadId = ++activeLoadId
+            const userRef = doc(db, "users", user.uid)
+            const userDoc = await getDoc(userRef)
+
+            let baseData
+            if (!userDoc.exists()) {
+                baseData = {
                     email: user.email,
                     accounts: {},
-                    txs: [],
-                };
-                await setDoc(userRef, dataToSetToStore, { merge: true });
+                    accountIds: {},
+                    transactions: []
+                }
+                await setDoc(userRef, baseData, { merge: true })
             } else {
-                console.log("Fetching User");
-                const userData = docSnap.data();
-                dataToSetToStore = userData;
+                baseData = userDoc.data() || {}
+            }
+
+            const {
+                accounts: _ignoredAccounts,
+                txs: _ignoredLegacyTransactions,
+                accountIds: _ignoredAccountIds,
+                transactions: _ignoredTransactions,
+                transactionsMeta: _ignoredTransactionsMeta,
+                ...otherUserData
+            } = baseData
+
+            const hydratedBaseData = {
+                ...otherUserData,
+                email: otherUserData.email || user.email
             }
 
             authStore.update((curr) => {
                 return {
                     ...curr,
                     user,
-                    data: dataToSetToStore,
-                    loading: false,
-                };
-            });
-        });
-        return unsubscribe;
-    });
+                    loading: true,
+                    data: {
+                        ...hydratedBaseData,
+                        accounts: {},
+                        accountIds: {},
+                        transactions: [],
+                        transactionsMeta: {
+                            backgroundLoading: false
+                        }
+                    }
+                }
+            })
+
+            await hydrateUserData(user, hydratedBaseData, loadId)
+        })
+
+        return () => {
+            activeLoadId += 1
+            unsubscribe()
+        }
+    })
 </script>
 
 <div class="mainContainer">
