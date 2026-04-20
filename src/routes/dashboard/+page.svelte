@@ -229,12 +229,20 @@
         transactionError = ""
     }
 
+    function reloadDashboardData() {
+        if (typeof window !== "undefined") {
+            window.location.reload()
+        }
+    }
+
     $: normalizedStoreAccounts = normalizeAccounts($authStore?.data?.accounts)
     $: normalizedStoreAccountIds = normalizeAccountIds($authStore?.data?.accountIds)
     $: normalizedStoreTransactions = normalizeTransactions($authStore?.data?.transactions || [])
     $: accounts = sortAccounts(Object.entries(normalizedStoreAccounts))
     $: transactions = sortTransactions(normalizedStoreTransactions)
     $: backgroundLoadingTransactions = Boolean($authStore?.data?.transactionsMeta?.backgroundLoading)
+    $: loadError = Boolean($authStore?.data?.transactionsMeta?.loadError)
+    $: loadErrorMessage = $authStore?.data?.transactionsMeta?.loadErrorMessage || "Unable to load your latest data."
 
     let editAccount = async (currentName, nextName, nextAmount) => {
         const userId = getCurrentUserId()
@@ -577,6 +585,12 @@
 
 {#if !$authStore.loading}
   <div class="mainContainer">
+    {#if loadError}
+      <div class="loadErrorBanner" aria-live="polite">
+        <span>{loadErrorMessage}</span>
+        <button class="reload" on:click={reloadDashboardData}>Reload</button>
+      </div>
+    {/if}
     <div class="signoutContainer">
       <button on:click={() => authHandlers.logout()}>Sign Out</button>
     </div>
@@ -651,9 +665,22 @@
   </div>
   </main>
 </div>
+{:else}
+  <div class="loadingState" aria-live="polite">
+    Loading your dashboard...
+  </div>
 {/if}
 
 <style>
+  .loadingState {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+    text-align: center;
+    color: #0f5f97;
+    font-weight: 600;
+  }
   .mainContainer {
     display: flex;
     flex-direction: column;
@@ -661,6 +688,27 @@
     max-width: 1200px;
     width: 100%;
     margin: 0 auto;
+  }
+  .loadErrorBanner {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid #b42318;
+    border-radius: 6px;
+    background: #ffe9e6;
+    color: #7a271a;
+    font-size: 0.9rem;
+  }
+  .loadErrorBanner .reload {
+    min-height: 32px;
+    padding: 4px 10px;
+    background: #b42318;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
   }
   .headerContainer {
     display: flex;
@@ -822,6 +870,10 @@
   }
 
   @media (max-width: 768px) {
+    .loadErrorBanner {
+      flex-direction: column;
+      align-items: stretch;
+    }
     .headerContainer h1 {
       font-size: 1.25rem;
     }

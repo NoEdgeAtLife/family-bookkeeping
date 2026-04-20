@@ -8,8 +8,27 @@
     const nonAuthRoutes = ["/", "/product"]
     const initialTransactionsPageSize = 50
     const backgroundTransactionsPageSize = 250
+    const loadTimeoutMs = 15000
 
     let activeLoadId = 0
+
+    function withTimeout(promise, timeoutMs, errorMessage) {
+        return new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                reject(new Error(errorMessage))
+            }, timeoutMs)
+
+            Promise.resolve(promise)
+                .then((result) => {
+                    clearTimeout(timeoutId)
+                    resolve(result)
+                })
+                .catch((error) => {
+                    clearTimeout(timeoutId)
+                    reject(error)
+                })
+        })
+    }
 
     function toAccountsObject(accounts = []) {
         return accounts.reduce((acc, account) => {
@@ -68,8 +87,16 @@
     async function hydrateUserData(user, baseData, loadId) {
         try {
             const [accounts, firstTransactionsPage] = await Promise.all([
-                getAccounts(user.uid),
-                getTransactions(user.uid, initialTransactionsPageSize)
+                withTimeout(
+                    getAccounts(user.uid),
+                    loadTimeoutMs,
+                    "Timed out loading accounts"
+                ),
+                withTimeout(
+                    getTransactions(user.uid, initialTransactionsPageSize),
+                    loadTimeoutMs,
+                    "Timed out loading transactions"
+                )
             ])
 
             if (loadId !== activeLoadId) {
@@ -102,10 +129,14 @@
             let lastDoc = firstTransactionsPage.lastDoc
 
             while (hasMore && loadId === activeLoadId) {
-                const nextPage = await getTransactions(
-                    user.uid,
-                    backgroundTransactionsPageSize,
-                    lastDoc
+                const nextPage = await withTimeout(
+                    getTransactions(
+                        user.uid,
+                        backgroundTransactionsPageSize,
+                        lastDoc
+                    ),
+                    loadTimeoutMs,
+                    "Timed out loading more transactions"
                 )
 
                 const nextTransactions = normalizeTransactions(nextPage.transactions)
@@ -164,7 +195,8 @@
                         transactionsMeta: {
                             ...(curr.data?.transactionsMeta || {}),
                             backgroundLoading: false,
-                            loadError: true
+                            loadError: true,
+                            loadErrorMessage: "Unable to load all data. Please refresh and try again."
                         }
                     }
                 }
@@ -175,78 +207,135 @@
     onMount(() => {
         const unsubscribe = auth.onAuthStateChanged(async (user) => {
             const currentPath = window.location.pathname
+            let loadId = null
 
-            if (!user && !nonAuthRoutes.includes(currentPath)) {
-                window.location.href = "/"
-                return
-            }
+            try {
+                if (!user && !nonAuthRoutes.includes(currentPath)) {
+                    window.location.href = "/"
+                    return
+                }
 
-            if (user && currentPath === "/") {
-                window.location.href = "/dashboard"
-                return
-            }
+                if (user && currentPath === "/") {
+                    window.location.href = "/dashboard"
+                    return
+                }
 
-            if (!user) {
+                if (!user) {
+                    authStore.update((curr) => {
+                        return {
+                            ...curr,
+                            user: null,
+                            data: {},
+                            loading: false
+                        }
+                    })
+                    return
+                }
+
+                loadId = ++activeLoadId
+                const userRef = doc(db, "users", user.uid)
+
                 authStore.update((curr) => {
                     return {
                         ...curr,
-                        user: null,
-                        data: {},
-                        loading: false
-                    }
-                })
-                return
-            }
-
-            const loadId = ++activeLoadId
-            const userRef = doc(db, "users", user.uid)
-            const userDoc = await getDoc(userRef)
-
-            let baseData
-            if (!userDoc.exists()) {
-                baseData = {
-                    email: user.email,
-                    accounts: {},
-                    accountIds: {},
-                    transactions: []
-                }
-                await setDoc(userRef, baseData, { merge: true })
-            } else {
-                baseData = userDoc.data() || {}
-            }
-
-            const {
-                accounts: _ignoredAccounts,
-                txs: _ignoredLegacyTransactions,
-                accountIds: _ignoredAccountIds,
-                transactions: _ignoredTransactions,
-                transactionsMeta: _ignoredTransactionsMeta,
-                ...otherUserData
-            } = baseData
-
-            const hydratedBaseData = {
-                ...otherUserData,
-                email: otherUserData.email || user.email
-            }
-
-            authStore.update((curr) => {
-                return {
-                    ...curr,
-                    user,
-                    loading: true,
-                    data: {
-                        ...hydratedBaseData,
-                        accounts: {},
-                        accountIds: {},
-                        transactions: [],
-                        transactionsMeta: {
-                            backgroundLoading: false
+                        user,
+                        loading: true,
+                        data: {
+                            ...(curr?.data || {}),
+                            transactionsMeta: {
+                                ...(curr?.data?.transactionsMeta || {}),
+                                backgroundLoading: false,
+                                loadError: false,
+                                loadErrorMessage: ""
+                            }
                         }
                     }
-                }
-            })
+                })
 
-            await hydrateUserData(user, hydratedBaseData, loadId)
+                const userDoc = await withTimeout(
+                    getDoc(userRef),
+                    loadTimeoutMs,
+                    "Timed out loading user profile"
+                )
+
+                let baseData
+                if (!userDoc.exists()) {
+                    baseData = {
+                        email: user.email,
+                        accounts: {},
+                        accountIds: {},
+                        transactions: []
+                    }
+                    await withTimeout(
+                        setDoc(userRef, baseData, { merge: true }),
+                        loadTimeoutMs,
+                        "Timed out creating user profile"
+                    )
+                } else {
+                    baseData = userDoc.data() || {}
+                }
+
+                const {
+                    accounts: _ignoredAccounts,
+                    txs: _ignoredLegacyTransactions,
+                    accountIds: _ignoredAccountIds,
+                    transactions: _ignoredTransactions,
+                    transactionsMeta: _ignoredTransactionsMeta,
+                    ...otherUserData
+                } = baseData
+
+                const hydratedBaseData = {
+                    ...otherUserData,
+                    email: otherUserData.email || user.email
+                }
+
+                authStore.update((curr) => {
+                    return {
+                        ...curr,
+                        user,
+                        loading: true,
+                        data: {
+                            ...hydratedBaseData,
+                            accounts: {},
+                            accountIds: {},
+                            transactions: [],
+                            transactionsMeta: {
+                                backgroundLoading: false,
+                                loadError: false,
+                                loadErrorMessage: ""
+                            }
+                        }
+                    }
+                })
+
+                await hydrateUserData(user, hydratedBaseData, loadId)
+            } catch (error) {
+                console.error("Auth bootstrap failed", error)
+
+                authStore.update((curr) => {
+                    if (loadId && loadId !== activeLoadId) {
+                        return curr
+                    }
+
+                    return {
+                        ...curr,
+                        user: user || null,
+                        loading: false,
+                        data: {
+                            ...(curr?.data || {}),
+                            accounts: curr?.data?.accounts || {},
+                            accountIds: curr?.data?.accountIds || {},
+                            transactions: curr?.data?.transactions || [],
+                            transactionsMeta: {
+                                ...(curr?.data?.transactionsMeta || {}),
+                                backgroundLoading: false,
+                                loadError: true,
+                                loadErrorMessage: "Unable to load your data. Please refresh and try again."
+                            }
+                        }
+                    }
+                })
+            }
         })
 
         return () => {
