@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User documents
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Accounts subcollection
+      match /accounts/{accountId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Transactions subcollection
+      match /transactions/{transactionId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Backups subcollection (read-only for users)
+      match /backups/{backupId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false; // Only server can write backups
+      }
+    }
+  }
+}
